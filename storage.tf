@@ -1,7 +1,7 @@
 resource "azurerm_storage_account" "minio_storage_account" {
   name                     = "miniostorageaccount2"
   resource_group_name      = azurerm_resource_group.minio_rg.name
-  location                 = azurerm_resource_group.minio_rg.location
+  location                 = var.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
