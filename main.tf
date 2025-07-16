@@ -1,11 +1,10 @@
-resource "azurerm_resource_group" "minio_rg" {
-  name     = var.resource_group_name
-  location = var.location
+data "azurerm_resource_group" "minio_rg" {
+  name = var.resource_group_name
 }
 
 resource "azurerm_log_analytics_workspace" "minio_law" {
   name                = "minio-law"
-  location            = var.location
+  location            = var.location.value
   resource_group_name = azurerm_resource_group.minio_rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30

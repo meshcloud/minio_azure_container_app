@@ -1,26 +1,18 @@
-resource "azurerm_virtual_network" "minio_vnet" {
-  name                = "minio-vnet"
-  address_space       = [var.vnet_cidr_range]
-  location            = azurerm_resource_group.minio_rg.location
+data "azurerm_virtual_network" "minio_vnet" {
+  name                = vnet_name
   resource_group_name = azurerm_resource_group.minio_rg.name
 }
 
-
-resource "azurerm_subnet" "minio_subnet" {
-  name                                          = "minio-subnet"
-  resource_group_name                           = azurerm_resource_group.minio_rg.name
-  virtual_network_name                          = azurerm_virtual_network.minio_vnet.name
-  address_prefixes                              = [var.subnet_cidr_range]
-  service_endpoints                             = ["Microsoft.Storage"]
-  private_link_service_network_policies_enabled = false
+data "azurerm_subnet" "minio_subnet" {
+  name                 = var.subnet_name
+  virtual_network_name = azurerm_virtual_network.minio_vnet.name
+  resource_group_name  = azurerm_resource_group.minio_rg.name
 }
 
-resource "azurerm_subnet" "minio_ag_subnet" {
-  name                 = "minio-ag-subnet"
-  resource_group_name  = azurerm_resource_group.minio_rg.name
+data "azurerm_subnet" "minio_ag_subnet" {
+  name                 = var.ag_subnet_name
   virtual_network_name = azurerm_virtual_network.minio_vnet.name
-  address_prefixes     = [var.ag_subnet_cidr_range]
-  service_endpoints    = ["Microsoft.Storage"]
+  resource_group_name  = azurerm_resource_group.minio_rg.name
 }
 
 resource "azurerm_public_ip" "minio_pip" {

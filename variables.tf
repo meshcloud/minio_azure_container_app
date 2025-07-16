@@ -1,14 +1,10 @@
-variable "azure_subscription_id" {
-  type = string
-  nullable = false
-}
 variable "resource_group_name" {
   type    = string
-  default = "minio-rg"
+  nullable = false
 }
 variable "location" {
-  type    = string
-  default = "West Europe"
+  type    = list(string)
+  default = ["West Europe", "North Europe", "Germany West Central", "Germany North"]
 }
 variable "container_app_name" {
   type    = string
@@ -33,15 +29,15 @@ variable "ingress_allow_ip_address_range" {
   description = "Range of IP addresses that can access the MinIO Container"
   nullable = false
 }
-variable "vnet_cidr_range" {
+variable "vnet_name" {
   type    = string
-  description = "CIDR Range to use for VNET creation. Example: 10.0.0.0/16"
+  description = "Name of the existing VNET to be used"
 }
-variable "subnet_cidr_range" {
+variable "subnet_name" {
   type    = string
-  description = "Subnet CIDR Range used for Container Application. Must be at minimum /23. Example: 10.0.0.0/23"
+  description = "Name of the existing Subnet to be used for the Azure Container App"
 }
-variable "ag_subnet_cidr_range" {
+variable "ag_subnet_name" {
   type    = string
-  description = "Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23"
+  description = "Name of the existing Subnet to be used for the Application Gateway"
 }

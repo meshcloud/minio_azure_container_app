@@ -5,6 +5,13 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 ## Requirements
 - Azure Subscription
 - Microsoft.App Resource Provider enabled on Azure Subscription
+- Virtual Network
+- 2 Subnets
+  - 1 Subnet for the Container App
+    - Private link Service Network Policies **disabled**
+    - Microsoft.Storage Service Endpoint **enabled**
+  - 1 Subnet exclusively for Application Gateways
+    - Microsoft.Storage Service Endpoint **enabled**
 
 ## To Use
 - Create a Terraform Building Block Definition
