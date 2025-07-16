@@ -1,10 +1,15 @@
 # MinIO Azure Container App
 
-This repo deploys a MinIO Container to Azure Container Apps. It pulls the MinIO Container Image from Dockerhub
+This repo deploys a MinIO Container to Azure Container Apps. The App will utilize a Web Application Firewall (WAF) for security and an Application Gateway for load balancing.
 
 ## Requirements
 - Azure Subscription
-- Microsoft.App Resource Provider enabled
+- Microsoft.App Resource Provider enabled on Azure Subscription
+
+## Inputs
+- **minio_root_user**: Root User for MinIO access
+- **minio_root_password**: Root Password for MinIO
+- **ingress_allow_ip_address_range**: Allowlist of IPs/IP Ranges that can access MinIO
 
 ## Resources That Are Created
 - VNET
@@ -16,20 +21,3 @@ This repo deploys a MinIO Container to Azure Container Apps. It pulls the MinIO 
 - Log Analytics Workspace
 - Container App Environment
 - Container App
-
-## Inputs
-- **minio_root_user**: Root User for MinIO access
-- **minio_root_password**: Root Password for MinIO
-- **ingress_allow_ip_address_range**: Allowlist of IPs/IP Ranges that can access MinIO
-
-## How to deploy
-- `terraform apply`
-
-## TODO
-#### Secrets
-- Extract secrets from files and store in
-  - Key Vault?
-  - Github Secrets?
-
-- Automate Deployment
-  - Building Block Deployment
