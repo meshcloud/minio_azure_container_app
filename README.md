@@ -6,6 +6,12 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 - Azure Subscription
 - Microsoft.App Resource Provider enabled on Azure Subscription
 
+## To Use
+- Create a Terraform Building Block Definition
+- Select Azure as the Supported Platform
+- How often can this Building Block be assigned?: Once
+- **Git Repository URL**: https://github.com/meshcloud/minio_azure_container_app.git
+
 ## Inputs
 - **minio_root_user**: Root User for MinIO access
 - **minio_root_password**: Root Password for MinIO

@@ -1,5 +1,6 @@
 variable "azure_subscription_id" {
   type = string
+  nullable = false
 }
 variable "resource_group_name" {
   type    = string
@@ -20,13 +21,17 @@ variable "container_image" {
 }
 variable "minio_root_user" {
   type    = string
+  nullable = false
 }
 variable "minio_root_password" {
   type    = string
   sensitive = true
+  nullable = false
 }
 variable "ingress_allow_ip_address_range" {
   type    = string
+  description = "Range of IP addresses that can access the MinIO Container"
+  nullable = false
 }
 variable "vnet_cidr_range" {
   type    = string
