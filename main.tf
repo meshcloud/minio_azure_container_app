@@ -16,6 +16,7 @@ resource "azurerm_container_app_environment" "minio_app_env" {
   location                   = var.location
   resource_group_name        = azurerm_resource_group.minio_rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.minio_law.id
+  infrastructure_subnet_id   = azurerm_subnet.minio_subnet.id
 }
 
 resource "azurerm_container_app" "minio_container_app" {
@@ -28,22 +29,22 @@ resource "azurerm_container_app" "minio_container_app" {
     min_replicas = 1
     max_replicas = 2
     container {
-      name   = var.container_app_name
-      image  = var.container_image
+      name    = var.container_app_name
+      image   = var.container_image
       command = ["minio", "server", "/data", "--console-address", ":9090"]
-      cpu    = 0.25
-      memory = "0.5Gi"
+      cpu     = 2.0
+      memory  = "4.0Gi"
       env {
-        name = "MINIO_ROOT_USER"
+        name  = "MINIO_ROOT_USER"
         value = var.minio_root_user
       }
       env {
-        name = "MINIO_ROOT_PASSWORD"
+        name  = "MINIO_ROOT_PASSWORD"
         value = var.minio_root_password
       }
     }
     volume {
-      name = "minio-volume"
+      name         = "minio-volume"
       storage_name = azurerm_container_app_environment_storage.minio_app_storage.name
       storage_type = "AzureFile"
     }
@@ -52,20 +53,20 @@ resource "azurerm_container_app" "minio_container_app" {
   # Console UI Port
   ingress {
     allow_insecure_connections = true
-    target_port = 9090
-    transport = "auto"
-    external_enabled = true
+    target_port                = 9090
+    transport                  = "auto"
+    external_enabled           = true
 
     traffic_weight {
-      percentage = 100
+      percentage      = 100
       latest_revision = true
     }
 
     ip_security_restriction {
-      name = "IP Restrictions for UI"
-      action = "Allow"
+      name             = "IP Restrictions for UI"
+      action           = "Allow"
       ip_address_range = var.ingress_allow_ip_address_range
     }
   }
-  
+
 }
