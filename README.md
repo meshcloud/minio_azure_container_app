@@ -23,9 +23,9 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 - **minio_root_user**: Root User for MinIO access
 - **minio_root_password**: Root Password for MinIO
 - **ingress_allow_ip_address_range**: Allowlist of IPs/IP Ranges that can access MinIO
-- **vnet_cidr_range**: CIDR Range to use for VNET creation. Example: 10.0.0.0/16
-- **subnet_cidr_range**: Subnet CIDR Range used for Container Application. Must be at minimum /23. Example: 10.0.0.0/23
-- **ag_subnet_cidr_range**: Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23
+- **vnet_name**: Name of the existing VNET to be used
+- **subnet_name**: Name of the existing Subnet to be used for the Azure Container App
+- **ag_subnet_name**: Name of the existing Subnet to be used for the Application Gateway
 
 ## Outputs
 - **azurerm_container_app_url**: The URL for the MinIO Console
@@ -33,8 +33,6 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 - **application_gateway_id**: The ID of the Application Gateway that was created
 
 ## Resources That Are Created
-- VNET
-- Subnet
 - WAF Policy
 - Application Gateway
 - Storage Account
