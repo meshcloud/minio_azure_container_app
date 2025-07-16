@@ -2,9 +2,12 @@ variable "resource_group_name" {
   type    = string
   nullable = false
 }
+variable "subscription_id" {
+  type = string
+}
 variable "location" {
-  type    = list(string)
-  default = ["West Europe", "North Europe", "Germany West Central", "Germany North"]
+  type    = string
+  default = "West Europe"
 }
 variable "container_app_name" {
   type    = string

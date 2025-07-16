@@ -1,7 +1,7 @@
 resource "azurerm_web_application_firewall_policy" "minio_waf_policy" {
   name                = "minio-waf-policy"
-  resource_group_name = azurerm_resource_group.minio_rg.name
-  location            = azurerm_resource_group.minio_rg.location
+  resource_group_name = var.resource_group_name
+  location            = data.azurerm_resource_group.minio_rg.location
   policy_settings {
     enabled = true
     mode    = "Detection"
@@ -38,8 +38,8 @@ resource "azurerm_web_application_firewall_policy" "minio_waf_policy" {
 # Create the Application Gateway
 resource "azurerm_application_gateway" "minio_appgw" {
   name                = "minio-appgw"
-  location            = azurerm_resource_group.minio_rg.location
-  resource_group_name = azurerm_resource_group.minio_rg.name
+  location            = data.azurerm_resource_group.minio_rg.location
+  resource_group_name = var.resource_group_name
 
   # Configure the SKU and capacity
   sku {
@@ -56,7 +56,7 @@ resource "azurerm_application_gateway" "minio_appgw" {
   # Configure the gateway's IP settings
   gateway_ip_configuration {
     name      = "appgw-ip-config"
-    subnet_id = azurerm_subnet.minio_ag_subnet.id
+    subnet_id = data.azurerm_subnet.minio_ag_subnet.id
   }
 
   # Configure the frontend IP
@@ -126,7 +126,7 @@ resource "azurerm_application_gateway" "minio_appgw" {
     name = "minio-container-private-link"
     ip_configuration {
       name                          = "minio-pl-config"
-      subnet_id                     = azurerm_subnet.minio_subnet.id
+      subnet_id                     = data.azurerm_subnet.minio_subnet.id
       private_ip_address_allocation = "Dynamic"
       primary                       = true
     }

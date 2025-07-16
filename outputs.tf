@@ -7,3 +7,6 @@ output "public_ip_address" {
 output "application_gateway_id" {
   value = azurerm_application_gateway.minio_appgw.id
 }
+output "minio_root_username" {
+  value = var.minio_root_user
+}

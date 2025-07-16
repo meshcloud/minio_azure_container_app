@@ -4,8 +4,8 @@ data "azurerm_resource_group" "minio_rg" {
 
 resource "azurerm_log_analytics_workspace" "minio_law" {
   name                = "minio-law"
-  location            = var.location.value
-  resource_group_name = azurerm_resource_group.minio_rg.name
+  location            = var.location
+  resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
@@ -13,15 +13,15 @@ resource "azurerm_log_analytics_workspace" "minio_law" {
 resource "azurerm_container_app_environment" "minio_app_env" {
   name                       = "minio-environment"
   location                   = var.location
-  resource_group_name        = azurerm_resource_group.minio_rg.name
+  resource_group_name        = var.resource_group_name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.minio_law.id
-  infrastructure_subnet_id   = azurerm_subnet.minio_subnet.id
+  infrastructure_subnet_id   = data.azurerm_subnet.minio_subnet.id
 }
 
 resource "azurerm_container_app" "minio_container_app" {
   name                         = "minio-app"
   container_app_environment_id = azurerm_container_app_environment.minio_app_env.id
-  resource_group_name          = azurerm_resource_group.minio_rg.name
+  resource_group_name          = var.resource_group_name
   revision_mode                = "Single"
 
   template {

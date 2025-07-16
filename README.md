@@ -9,6 +9,11 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 - 2 Subnets
   - 1 Subnet for the Container App
     - Private link Service Network Policies **disabled**
+      - `az network vnet subnet update \
+          --name default \
+          --vnet-name MyVnet \
+          --resource-group myResourceGroup \
+          --disable-private-link-service-network-policies yes`
     - Microsoft.Storage Service Endpoint **enabled**
   - 1 Subnet exclusively for Application Gateways
     - Microsoft.Storage Service Endpoint **enabled**
