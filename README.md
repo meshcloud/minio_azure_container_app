@@ -18,9 +18,9 @@ This repo deploys a MinIO Container to Azure Container Apps. It pulls the MinIO 
 - Container App
 
 ## Inputs
-- MINIO_ROOT_USER
-- MINIO_ROOT_PASSWORD
-- Allowlist of IPs/IP Ranges that can access MinIO
+- **minio_root_user**: Root User for MinIO access
+- **minio_root_password**: Root Password for MinIO
+- **ingress_allow_ip_address_range**: Allowlist of IPs/IP Ranges that can access MinIO
 
 ## How to deploy
 - `terraform apply`

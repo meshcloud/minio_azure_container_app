@@ -7,12 +7,6 @@ resource "azurerm_storage_account" "minio_storage_account" {
   account_kind                      = "StorageV2" # Required for infrastructure_encryption_enabled
   access_tier                       = "Hot"
   infrastructure_encryption_enabled = true
-  # public_network_access_enabled = false
-  # network_rules {
-  #   default_action             = "Allow"
-  #   ip_rules                   = [var.ingress_allow_ip_address_range]
-  #   virtual_network_subnet_ids = [azurerm_subnet.minio_subnet.id]
-  # }
 }
 
 resource "azurerm_storage_share" "minio_storage_share" {

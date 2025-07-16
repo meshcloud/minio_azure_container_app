@@ -12,7 +12,7 @@ resource "azurerm_log_analytics_workspace" "minio_law" {
 }
 
 resource "azurerm_container_app_environment" "minio_app_env" {
-  name                       = "Minio-Environment"
+  name                       = "minio-environment"
   location                   = var.location
   resource_group_name        = azurerm_resource_group.minio_rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.minio_law.id

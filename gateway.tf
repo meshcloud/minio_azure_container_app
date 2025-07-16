@@ -4,7 +4,7 @@ resource "azurerm_web_application_firewall_policy" "minio_waf_policy" {
   location            = azurerm_resource_group.minio_rg.location
   policy_settings {
     enabled = true
-    mode    = Detection
+    mode    = "Detection"
   }
 
   # Define managed rules for the WAF policy
@@ -140,9 +140,3 @@ resource "azurerm_application_gateway" "minio_appgw" {
     rule_set_version = "3.2"
   }
 }
-
-# resource "azurerm_application_security_group" "minio_app_sg" {
-#   name                = "minio-appsecuritygroup"
-#   location            = azurerm_resource_group.minio_rg.location
-#   resource_group_name = azurerm_resource_group.minio_rg.name
-# }

@@ -16,18 +16,22 @@ variable "container_image" {
 }
 variable "minio_root_user" {
   type    = string
-  default = "usernamepat"
 }
 variable "minio_root_password" {
   type    = string
-  default = "passwordpat"
 }
-variable "ingress_allow_ip_address_range" { # TODO: remove default value
+variable "ingress_allow_ip_address_range" {
   type    = string
-  default = "79.207.219.193"
 }
-variable "blocked_ip_address" {
-  type        = string
-  default     = ""
-  description = "The IP address to be blocked by the WAF custom rule."
+variable "vnet_cidr_range" {
+  type    = string
+  default = "10.0.0.0/16"
+}
+variable "subnet_cidr_range" {
+  type    = string
+  default = "10.0.0.0/23"
+}
+variable "ag_subnet_cidr_range" {
+  type    = string
+  default = "10.0.10.0/23"
 }
