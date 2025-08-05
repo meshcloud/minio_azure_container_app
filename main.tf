@@ -60,12 +60,6 @@ resource "azurerm_container_app" "minio_container_app" {
       percentage      = 100
       latest_revision = true
     }
-
-    ip_security_restriction {
-      name             = "IP Restrictions for UI"
-      action           = "Allow"
-      ip_address_range = var.ingress_allow_ip_address_range
-    }
   }
 
 }
