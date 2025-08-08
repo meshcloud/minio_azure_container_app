@@ -31,7 +31,7 @@ resource "azurerm_container_app" "minio_container_app" {
     container {
       name    = var.container_app_name
       image   = var.container_image
-      command = ["minio", "server", "/data", "--console-address", ":9090"]
+      command = ["minio", "server", "/data", "--console-address", ":9001"]
       cpu     = 2.0
       memory  = "4.0Gi"
       env {
@@ -53,7 +53,7 @@ resource "azurerm_container_app" "minio_container_app" {
   # Console UI Port
   ingress {
     allow_insecure_connections = true
-    target_port                = 9090
+    target_port                = 9001
     transport                  = "auto"
     external_enabled           = true
 
