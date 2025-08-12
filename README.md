@@ -4,7 +4,8 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 
 ## Requirements
 - Azure Subscription
-- Microsoft.App Resource Provider enabled on Azure Subscription
+- Microsoft.App Resource Provider enabled on the Azure Subscription
+  - Follow the steps here to register "Microsoft.App"https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types#register-resource-provider-1
 
 ## To Use
 - Create a Terraform Building Block Definition
@@ -35,3 +36,15 @@ This repo deploys a MinIO Container to Azure Container Apps. The App will utiliz
 - Log Analytics Workspace
 - Container App Environment
 - Container App
+
+
+
+
+
+
+
+az network vnet subnet update \
+          --name minio-subnet \
+          --vnet-name MyVnet \
+          --resource-group minio-rg \
+          --disable-private-link-service-network-policies yes
