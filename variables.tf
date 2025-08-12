@@ -25,7 +25,7 @@ variable "minio_root_user" {
 }
 variable "minio_root_password" {
   type    = string
-  sensitive = true
+  # sensitive = true
   nullable = false
 }
 variable "ingress_allow_ip_address_range" {
@@ -36,12 +36,15 @@ variable "ingress_allow_ip_address_range" {
 variable "vnet_cidr_range" {
   type    = string
   description = "CIDR Range to use for VNET creation. Example: 10.0.0.0/16"
+  default = "10.0.0.0/16"
 }
 variable "subnet_cidr_range" {
   type    = string
   description = "Subnet CIDR Range used for Container Application. Must be at minimum /23. Example: 10.0.0.0/23"
+  default = "10.0.0.0/23"
 }
 variable "ag_subnet_cidr_range" {
   type    = string
   description = "Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23"
+  default = "10.0.10.0/23"
 }
