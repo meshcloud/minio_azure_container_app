@@ -1,7 +1,3 @@
-variable "azure_subscription_id" {
-  type = string
-  nullable = false
-}
 variable "resource_group_name" {
   type    = string
   default = "minio-rg"
@@ -25,7 +21,7 @@ variable "minio_root_user" {
 }
 variable "minio_root_password" {
   type    = string
-  # sensitive = true
+  sensitive = true
   nullable = false
 }
 variable "ingress_allow_ip_address_range" {
