@@ -16,7 +16,7 @@ variable "container_app_name" {
 }
 variable "container_image" {
   type    = string
-  default = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
+  default = "docker.io/pmooremeshcloud/minio_image:v1"
   description = "Container Image used for building MinIO App. More recent versions have a limited UI."
 }
 variable "minio_root_user" {
