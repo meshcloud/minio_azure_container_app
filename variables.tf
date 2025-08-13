@@ -1,3 +1,7 @@
+variable "azure_subscription_id" {
+  type = string
+  nullable = false
+}
 variable "resource_group_name" {
   type    = string
   default = "minio-rg"
