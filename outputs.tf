@@ -1,3 +1,7 @@
+
+output "platform_tenant_id" {
+  value = azurerm_container_app.minio_container_app.name
+}
 output "azurerm_container_app_url" {
   value = azurerm_container_app.minio_container_app.ingress[0].fqdn
 }
