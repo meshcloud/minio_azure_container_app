@@ -15,24 +15,24 @@ resource "azurerm_web_application_firewall_policy" "minio_waf_policy" {
     }
   }
 
-  # Allow Traffic from an IP range
-  custom_rules {
-    enabled   = true
-    name      = "AllowSpecificIP"
-    priority  = 1
-    rule_type = "MatchRule"
+  # # Allow Traffic from an IP range
+  # custom_rules {
+  #   enabled   = true
+  #   name      = "AllowSpecificIP"
+  #   priority  = 1
+  #   rule_type = "MatchRule"
 
-    match_conditions {
-      match_variables {
-        variable_name = "RemoteAddr"
-      }
-      operator           = "IPMatch"
-      negation_condition = false
-      match_values       = [var.ingress_allow_ip_address_range]
-    }
+  #   match_conditions {
+  #     match_variables {
+  #       variable_name = "RemoteAddr"
+  #     }
+  #     operator           = "IPMatch"
+  #     negation_condition = false
+  #     match_values       = [var.ingress_allow_ip_address_range]
+  #   }
 
-    action = "Allow"
-  }
+  #   action = "Allow"
+  # }
 }
 
 # Create the Application Gateway
@@ -66,31 +66,29 @@ resource "azurerm_application_gateway" "minio_appgw" {
     private_link_configuration_name = "minio-container-private-link"
   }
 
-  # Define the frontend port
+  # Define the frontend port for the UI
   frontend_port {
-    name = "appgw-frontend-port"
-    port = 80
+    name = "appgw-frontend-port-ui"
+    port = var.port_ui
   }
 
-  # Define the backend address pool for the UI
-  backend_address_pool {
-    name = "appgw-backend-pool-ui"
-    # ip_addresses = [azurerm_container_app.minio_container_app.latest_revision_fqdn]
-    # fqdns = [azurerm_container_app.minio_container_app.ingress[0].fqdn]
+  # Define the frontend port for the API
+  frontend_port {
+    name = "appgw-frontend-port-api"
+    port = var.port_api
   }
 
-  # Define the backend address pool for the UI
+  # Define the backend address pool
   backend_address_pool {
-    name = "appgw-backend-pool-api"
-    # ip_addresses = [azurerm_container_app.minio_container_app.latest_revision_fqdn]
-    # fqdns = [azurerm_container_app.minio_container_app.ingress[0].fqdn]
+    name  = "appgw-backend-pool"
+    fqdns = [azurerm_container_app.minio_container_app.ingress[0].fqdn]
   }
 
   # Configure backend HTTP settings for the UI
   backend_http_settings {
     name                                = "appgw-backend-http-settings-ui"
     cookie_based_affinity               = "Disabled"
-    port                                = 9001
+    port                                = var.port_ui
     protocol                            = "Http"
     request_timeout                     = 20
     pick_host_name_from_backend_address = true
@@ -101,20 +99,27 @@ resource "azurerm_application_gateway" "minio_appgw" {
   backend_http_settings {
     name                                = "appgw-backend-http-settings-api"
     cookie_based_affinity               = "Disabled"
-    port                                = 9000
+    port                                = var.port_api
     protocol                            = "Http"
     request_timeout                     = 20
     pick_host_name_from_backend_address = true
     # trusted_root_certificate_names = ["backend-root-cert"]
   }
 
-
-
-  # Define the HTTP listener
+  # Define the HTTP listener for the UI
   http_listener {
-    name                           = "appgw-http-listener"
+    name                           = "appgw-http-listener-ui"
     frontend_ip_configuration_name = "appgw-frontend-ip"
-    frontend_port_name             = "appgw-frontend-port"
+    frontend_port_name             = "appgw-frontend-port-ui"
+    protocol                       = "Http"
+    host_name                      = azurerm_container_app.minio_container_app.latest_revision_fqdn
+  }
+
+  # Define the HTTP listener for the API
+  http_listener {
+    name                           = "appgw-http-listener-api"
+    frontend_ip_configuration_name = "appgw-frontend-ip"
+    frontend_port_name             = "appgw-frontend-port-api"
     protocol                       = "Http"
     host_name                      = azurerm_container_app.minio_container_app.latest_revision_fqdn
   }
@@ -129,7 +134,6 @@ resource "azurerm_application_gateway" "minio_appgw" {
         header_value = "\\{host\\}"
       }
     }
-
   }
 
   # Define the request routing rule for the UI
@@ -137,8 +141,8 @@ resource "azurerm_application_gateway" "minio_appgw" {
     name                       = "appgw-routing-rule-ui"
     priority                   = 1
     rule_type                  = "Basic"
-    http_listener_name         = "appgw-http-listener"
-    backend_address_pool_name  = "appgw-backend-pool-ui"
+    http_listener_name         = "appgw-http-listener-ui"
+    backend_address_pool_name  = "appgw-backend-pool"
     backend_http_settings_name = "appgw-backend-http-settings-ui"
     rewrite_rule_set_name      = "minio-rewrite-rule-set"
   }
@@ -146,10 +150,10 @@ resource "azurerm_application_gateway" "minio_appgw" {
   # Define the request routing rule for the API
   request_routing_rule {
     name                       = "appgw-routing-rule-api"
-    priority                   = 1
+    priority                   = 2
     rule_type                  = "Basic"
-    http_listener_name         = "appgw-http-listener"
-    backend_address_pool_name  = "appgw-backend-pool-api"
+    http_listener_name         = "appgw-http-listener-api"
+    backend_address_pool_name  = "appgw-backend-pool"
     backend_http_settings_name = "appgw-backend-http-settings-api"
     rewrite_rule_set_name      = "minio-rewrite-rule-set"
   }

@@ -10,9 +10,9 @@ resource "azurerm_storage_account" "minio_storage_account" {
 }
 
 resource "azurerm_storage_share" "minio_storage_share" {
-  name                 = "miniostorageshare"
-  storage_account_id   = azurerm_storage_account.minio_storage_account.id
-  quota                = 5 # size in GBs
+  name               = "miniostorageshare"
+  storage_account_id = azurerm_storage_account.minio_storage_account.id
+  quota              = 5 # size in GBs
 }
 
 resource "azurerm_container_app_environment_storage" "minio_app_storage" {

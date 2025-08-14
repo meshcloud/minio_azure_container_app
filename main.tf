@@ -52,10 +52,10 @@ resource "azurerm_container_app" "minio_container_app" {
 
   # Console UI Port
   ingress {
-    allow_insecure_connections = true
-    target_port                = 9001
-    transport                  = "auto"
-    external_enabled           = true
+    # allow_insecure_connections = true
+    target_port                = var.port_ui
+    transport                  = "http"
+    external_enabled           = false
 
     traffic_weight {
       percentage      = 100
@@ -67,6 +67,11 @@ resource "azurerm_container_app" "minio_container_app" {
       action           = "Allow"
       ip_address_range = var.ingress_allow_ip_address_range
     }
-  }
 
+    ip_security_restriction {
+      name             = "Allow-App-Gateway-Subnet"
+      action           = "Allow"
+      ip_address_range = var.ag_subnet_cidr_range
+    }
+  }
 }
