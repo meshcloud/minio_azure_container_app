@@ -1,26 +1,25 @@
-# data "azurerm_container_registry" "minioimage" {
-#   name = "minioimage"
-#   resource_group_name = var.resource_group_name
-# }
-
-resource "azurerm_resource_group" "minio_aci_rg" {
+data "azurerm_resource_group" "minio_aci_rg" {
   name     = var.resource_group_name
-  location = var.location
+}
+
+data "azurerm_container_registry" "minioimage" {
+  name = "minioacr"
+  resource_group_name = var.resource_group_name
 }
 
 resource "azurerm_container_group" "minio_aci_container_group" {
   name                = "minio-aci-container-group"
-  location            = azurerm_resource_group.minio_aci_rg.location
-  resource_group_name = azurerm_resource_group.minio_aci_rg.name
+  location            = data.azurerm_resource_group.minio_aci_rg.location
+  resource_group_name = data.azurerm_resource_group.minio_aci_rg.name
   ip_address_type     = "Public"
   os_type             = "Linux"
   # subnet_ids = azurerm_subnet.minio_subnet.id
 
-  # image_registry_credential {
-  #   server   = data.azurerm_container_registry.minioimage.login_server
-  #   username = data.azurerm_container_registry.minioimage.admin_username
-  #   password = data.azurerm_container_registry.minioimage.admin_password
-  # }
+  image_registry_credential {
+    server   = data.azurerm_container_registry.minioimage.login_server
+    username = data.azurerm_container_registry.minioimage.admin_username
+    password = data.azurerm_container_registry.minioimage.admin_password
+  }
   
   exposed_port {
     port     = var.port_ui
