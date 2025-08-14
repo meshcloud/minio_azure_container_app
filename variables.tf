@@ -1,11 +1,10 @@
 variable "azure_subscription_id" {
   type     = string
   nullable = false
-  default  = "47e5c076-f337-4f41-8408-d9a3b7cfae69"
 }
 variable "resource_group_name" {
   type    = string
-  default = "minio-rgg"
+  default = "minio-rg"
 }
 variable "location" {
   type    = string
@@ -18,19 +17,16 @@ variable "container_app_name" {
 variable "minio_root_user" {
   type     = string
   nullable = false
-  default  = "usernamepat"
 }
 variable "minio_root_password" {
   type      = string
   sensitive = true
   nullable  = false
-  default   = "passwordpat"
 }
 variable "ingress_allow_ip_address_range" {
   type        = string
   description = "Range of IP addresses that can access the MinIO Container"
   nullable    = false
-  default     = "79.207.212.183"
 }
 variable "vnet_cidr_range" {
   type        = string
@@ -49,8 +45,8 @@ variable "ag_subnet_cidr_range" {
 }
 variable "container_image" {
   type        = string
-  default     = "docker.io/pmooremeshcloud/minio_image:v1"
-  # default     = "minioimage.azurecr.io/minioimage:v1"
+  # default     = "docker.io/pmooremeshcloud/minio_image:v1"
+  default     = "minioacr.azurecr.io/minio:v1"
   description = "Container Image used for building MinIO App. More recent versions have a limited UI."
 }
 variable "port_ui" {
