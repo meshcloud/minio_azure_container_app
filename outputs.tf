@@ -1,13 +1,16 @@
 
-# output "platform_tenant_id" {
-#   value = azurerm_container_app.minio_container_app.name
-# }
-# output "azurerm_container_app_url" {
-#   value = azurerm_container_app.minio_container_app.ingress[0].fqdn
-# }
-# output "public_ip_address" {
-#   value = azurerm_public_ip.minio_pip.ip_address
-# }
-# output "application_gateway_id" {
-#   value = azurerm_application_gateway.minio_appgw.id
-# }
+output "platform_tenant_id" {
+  value = azurerm_container_group.minio_aci_container_group.name
+}
+output "minio_ip_address" {
+  value = azurerm_public_ip.minio_pip.ip_address
+}
+output "web_console_port" {
+  value = var.port_ui
+}
+output "api_port" {
+  value = var.port_api
+}
+output "minio_username" {
+  value = var.minio_root_user
+}
