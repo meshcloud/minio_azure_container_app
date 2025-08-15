@@ -12,6 +12,12 @@ resource "azurerm_subnet" "minio_subnet" {
   address_prefixes                              = [var.subnet_cidr_range]
   service_endpoints                             = ["Microsoft.Storage"]
   private_link_service_network_policies_enabled = false
+  delegation {
+    name = "delegation"
+    service_delegation {
+      name = "Microsoft.ContainerInstance/containerGroups"
+    }
+  }
 }
 
 resource "azurerm_subnet" "minio_ag_subnet" {
@@ -19,7 +25,7 @@ resource "azurerm_subnet" "minio_ag_subnet" {
   resource_group_name  = data.azurerm_resource_group.minio_aci_rg.name
   virtual_network_name = azurerm_virtual_network.minio_vnet.name
   address_prefixes     = [var.ag_subnet_cidr_range]
-  service_endpoints    = ["Microsoft.Storage"]
+  private_link_service_network_policies_enabled = false
 }
 
 resource "azurerm_public_ip" "minio_pip" {
