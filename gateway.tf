@@ -162,7 +162,7 @@ resource "azurerm_application_gateway" "minio_appgw" {
     name = "minio-container-private-link"
     ip_configuration {
       name                          = "minio-pl-config"
-      subnet_id                     = azurerm_subnet.minio_subnet.id
+      subnet_id                     = azurerm_subnet.minio_ag_subnet.id
       private_ip_address_allocation = "Dynamic"
       primary                       = true
     }
