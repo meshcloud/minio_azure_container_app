@@ -11,9 +11,10 @@ resource "azurerm_container_group" "minio_aci_container_group" {
   name                = "minio-aci-container-group"
   location            = data.azurerm_resource_group.minio_aci_rg.location
   resource_group_name = data.azurerm_resource_group.minio_aci_rg.name
+  # ip_address_type     = "Private"
   ip_address_type     = "Public"
   os_type             = "Linux"
-  # subnet_ids = azurerm_subnet.minio_subnet.id
+  # subnet_ids = [azurerm_subnet.minio_subnet.id]
 
   image_registry_credential {
     server   = data.azurerm_container_registry.minioimage.login_server
