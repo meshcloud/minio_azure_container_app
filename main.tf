@@ -1,27 +1,26 @@
-data "azurerm_resource_group" "minio_aci_rg" {
-  name     = var.resource_group_name
-}
+# data "azurerm_resource_group" "minio_aci_rg" {
+#   name     = var.resource_group_name
+# }
 
-data "azurerm_container_registry" "minioimage" {
-  name = "minioacr"
-  resource_group_name = var.resource_group_name
+resource "azurerm_resource_group" "minio_aci_rg" {
+  name     = var.resource_group_name
+  location = var.location
 }
 
 resource "azurerm_container_group" "minio_aci_container_group" {
   name                = "minio-aci-container-group"
-  location            = data.azurerm_resource_group.minio_aci_rg.location
-  resource_group_name = data.azurerm_resource_group.minio_aci_rg.name
-  # ip_address_type     = "Private"
-  ip_address_type     = "Public"
-  os_type             = "Linux"
-  # subnet_ids = [azurerm_subnet.minio_subnet.id]
-
-  image_registry_credential {
-    server   = data.azurerm_container_registry.minioimage.login_server
-    username = data.azurerm_container_registry.minioimage.admin_username
-    password = data.azurerm_container_registry.minioimage.admin_password
+  location            = azurerm_resource_group.minio_aci_rg.location
+  resource_group_name = azurerm_resource_group.minio_aci_rg.name
+  ip_address_type     = "Private"
+  os_type = "Linux"
+  subnet_ids = [azurerm_subnet.minio_subnet.id]
+  diagnostics {
+    log_analytics {
+      workspace_id  = azurerm_log_analytics_workspace.minio_law.workspace_id
+      workspace_key = azurerm_log_analytics_workspace.minio_law.primary_shared_key
+    }
   }
-  
+
   exposed_port {
     port     = var.port_ui
     protocol = "TCP"
@@ -48,18 +47,23 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
 
     environment_variables = {
-        MINIO_ROOT_USER = var.minio_root_user
-        MINIO_ROOT_PASSWORD = var.minio_root_password
+      MINIO_ROOT_USER     = var.minio_root_user
+      MINIO_ROOT_PASSWORD = var.minio_root_password
     }
 
     volume {
-      name = "minio-volume"
-      mount_path = "/data"
+      name                 = "minio-volume"
+      mount_path           = "/data"
+      read_only = false
       storage_account_name = azurerm_storage_account.minio_storage_account.name
-      storage_account_key = azurerm_storage_account.minio_storage_account.primary_access_key
-      share_name = azurerm_storage_share.minio_storage_share.name
+      storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
+      share_name           = azurerm_storage_share.minio_storage_share.name
     }
 
-    commands = [ "minio", "server", "/data", "--console-address", ":9001" ]
+    security {
+      privilege_enabled = true
+    }
+
+    commands = ["minio", "server", "/data", "--console-address", ":9001", "--address", ":9000"]
   }
 }

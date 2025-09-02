@@ -1,7 +1,3 @@
-variable "azure_subscription_id" {
-  type     = string
-  nullable = false
-}
 variable "resource_group_name" {
   type    = string
   default = "minio-rg"
@@ -31,31 +27,48 @@ variable "ingress_allow_ip_address_range" {
 variable "vnet_cidr_range" {
   type        = string
   description = "CIDR Range to use for VNET creation. Example: 10.0.0.0/16"
-  default     = "10.0.0.0/16"
+  default     = "10.1.10.0/24"
 }
 variable "subnet_cidr_range" {
   type        = string
   description = "Subnet CIDR Range used for Container Application. Must be at minimum /23. Example: 10.0.0.0/23"
-  default     = "10.0.0.0/23"
+  default     = "10.1.10.64/27"
 }
 variable "ag_subnet_cidr_range" {
   type        = string
   description = "Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23"
-  default     = "10.0.10.0/23"
+  default     = "10.1.10.0/26"
+}
+variable "storage_account_subnet_cidr_range" {
+  type        = string
+  description = "Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23"
+  default     = "10.1.10.96/27" # 10.1.10.96 - 10.1.10.127
 }
 variable "container_image" {
-  type        = string
-  # default     = "docker.io/pmooremeshcloud/minio_image:v1"
-  default     = "minioacr.azurecr.io/minio:v1"
+  type = string
+  default     = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
   description = "Container Image used for building MinIO App. More recent versions have a limited UI."
 }
 variable "port_ui" {
-  type = string
+  type        = string
   description = "Port for the UI"
-  default = "9001"
+  default     = "9001"
 }
 variable "port_api" {
-  type = string
+  type        = string
   description = "Port for the API"
-  default = "9000"
+  default     = "9000"
+}
+variable "keyvault_name" {
+  type    = string
+  default = "miniokeyvault"
+}
+variable "kv_cert_name" {
+  type    = string
+  default = "minioapp.pfx"
+}
+variable "kv_cert_password" {
+  type      = string
+  sensitive = true
+  nullable  = false
 }

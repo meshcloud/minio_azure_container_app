@@ -1,10 +1,13 @@
-resource "azurerm_web_application_firewall_policy" "minio_waf_policy" {
-  name                = "minio-waf-policy"
-  resource_group_name = data.azurerm_resource_group.minio_aci_rg.name
-  location            = data.azurerm_resource_group.minio_aci_rg.location
+resource "azurerm_web_application_firewall_policy" "newwafpolicy" {
+  name                = "newwafpolicy"
+  resource_group_name = azurerm_resource_group.minio_aci_rg.name
+  location            = azurerm_resource_group.minio_aci_rg.location
   policy_settings {
     enabled = true
-    mode    = "Detection"
+    mode    = "Prevention"
+    log_scrubbing {
+      enabled = false
+    }
   }
 
   # Define managed rules for the WAF policy
@@ -38,8 +41,8 @@ resource "azurerm_web_application_firewall_policy" "minio_waf_policy" {
 # Create the Application Gateway
 resource "azurerm_application_gateway" "minio_appgw" {
   name                = "minio-appgw"
-  location            = data.azurerm_resource_group.minio_aci_rg.location
-  resource_group_name = data.azurerm_resource_group.minio_aci_rg.name
+  location            = azurerm_resource_group.minio_aci_rg.location
+  resource_group_name = azurerm_resource_group.minio_aci_rg.name
 
   # Configure the SKU and capacity
   sku {
@@ -53,6 +56,12 @@ resource "azurerm_application_gateway" "minio_appgw" {
     max_capacity = 3
   }
 
+  ssl_certificate {
+    name     = var.kv_cert_name
+    data     = filebase64("./${var.kv_cert_name}")
+    password = var.kv_cert_password
+  }
+
   # Configure the gateway's IP settings
   gateway_ip_configuration {
     name      = "appgw-ip-config"
@@ -61,9 +70,9 @@ resource "azurerm_application_gateway" "minio_appgw" {
 
   # Configure the frontend IP
   frontend_ip_configuration {
-    name                            = "appgw-frontend-ip"
-    public_ip_address_id            = azurerm_public_ip.minio_pip.id
-    private_link_configuration_name = "minio-container-private-link"
+    name                 = "appgw-frontend-ip"
+    public_ip_address_id = azurerm_public_ip.minio_pip.id
+    # private_link_configuration_name = "minio-container-private-link"
   }
 
   # Define the frontend port for the UI
@@ -78,32 +87,75 @@ resource "azurerm_application_gateway" "minio_appgw" {
     port = var.port_api
   }
 
+  # # Define the frontend port for Storage
+  # frontend_port {
+  #   name = "appgw-frontend-port-storage"
+  #   port = 445
+  # }
+
   # Define the backend address pool
   backend_address_pool {
-    name  = "appgw-backend-pool"
-    ip_addresses = [ azurerm_container_group.minio_aci_container_group.ip_address ]
+    name = "appgw-backend-pool"
+    fqdns = [ "patrickminiostorage.file.core.windows.net" ] # https://patrickminiostorage.file.core.windows.net/
+    ip_addresses = [azurerm_container_group.minio_aci_container_group.ip_address]
   }
+
+  # # Define the backend address pool
+  # backend_address_pool {
+  #   name = "storage-backend-pool"
+  #   fqdns = [ azurerm_storage_share.minio_storage_share.url ]
+  # }
 
   # Configure backend HTTP settings for the UI
   backend_http_settings {
     name                                = "appgw-backend-http-settings-ui"
+    probe_name                          = "ui-probe"
     cookie_based_affinity               = "Disabled"
     port                                = var.port_ui
     protocol                            = "Http"
     request_timeout                     = 20
     pick_host_name_from_backend_address = true
-    # trusted_root_certificate_names = ["backend-root-cert"]
+  }
+
+  # Probe for the UI endpoint
+  probe {
+    name                                      = "ui-probe"
+    pick_host_name_from_backend_http_settings = true
+    port                                      = var.port_ui
+    interval                                  = 30
+    protocol                                  = "Http"
+    path                                      = "/"
+    timeout                                   = 30
+    unhealthy_threshold                       = 3
+    match {
+      status_code = ["200-399"]
+    }
   }
 
   # Configure backend HTTP settings for the API
   backend_http_settings {
     name                                = "appgw-backend-http-settings-api"
+    probe_name                          = "api-probe"
     cookie_based_affinity               = "Disabled"
     port                                = var.port_api
     protocol                            = "Http"
     request_timeout                     = 20
     pick_host_name_from_backend_address = true
-    # trusted_root_certificate_names = ["backend-root-cert"]
+  }
+
+  # Probe for the API endpoint
+  probe {
+    name                                      = "api-probe"
+    pick_host_name_from_backend_http_settings = true
+    port                                      = var.port_api
+    interval                                  = 30
+    protocol                                  = "Http"
+    path                                      = "/"
+    timeout                                   = 30
+    unhealthy_threshold                       = 3
+    match {
+      status_code = ["403"]
+    }
   }
 
   # Define the HTTP listener for the UI
@@ -111,8 +163,8 @@ resource "azurerm_application_gateway" "minio_appgw" {
     name                           = "appgw-http-listener-ui"
     frontend_ip_configuration_name = "appgw-frontend-ip"
     frontend_port_name             = "appgw-frontend-port-ui"
-    protocol                       = "Http"
-    host_name                      = azurerm_container_group.minio_aci_container_group.fqdn
+    protocol                       = "Https"
+    ssl_certificate_name           = var.kv_cert_name
   }
 
   # Define the HTTP listener for the API
@@ -120,8 +172,8 @@ resource "azurerm_application_gateway" "minio_appgw" {
     name                           = "appgw-http-listener-api"
     frontend_ip_configuration_name = "appgw-frontend-ip"
     frontend_port_name             = "appgw-frontend-port-api"
-    protocol                       = "Http"
-    host_name                      = azurerm_container_group.minio_aci_container_group.fqdn
+    protocol                       = "Https"
+    ssl_certificate_name           = var.kv_cert_name
   }
 
   rewrite_rule_set {
@@ -158,21 +210,5 @@ resource "azurerm_application_gateway" "minio_appgw" {
     rewrite_rule_set_name      = "minio-rewrite-rule-set"
   }
 
-  private_link_configuration {
-    name = "minio-container-private-link"
-    ip_configuration {
-      name                          = "minio-pl-config"
-      subnet_id                     = azurerm_subnet.minio_ag_subnet.id
-      private_ip_address_allocation = "Dynamic"
-      primary                       = true
-    }
-  }
-
-  # Associate the WAF policy with the Application Gateway
-  waf_configuration {
-    enabled          = true
-    firewall_mode    = "Prevention"
-    rule_set_type    = "OWASP"
-    rule_set_version = "3.2"
-  }
+  firewall_policy_id = azurerm_web_application_firewall_policy.newwafpolicy.id
 }
