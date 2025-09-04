@@ -26,23 +26,19 @@ variable "ingress_allow_ip_address_range" {
 }
 variable "vnet_cidr_range" {
   type        = string
-  description = "CIDR Range to use for VNET creation. Example: 10.0.0.0/16"
-  default     = "10.1.10.0/24"
+  description = "CIDR Range to use for VNET creation. Example: 10.1.10.0/24"
 }
 variable "subnet_cidr_range" {
   type        = string
-  description = "Subnet CIDR Range used for Container Application. Must be at minimum /23. Example: 10.0.0.0/23"
-  default     = "10.1.10.64/27"
+  description = "Subnet CIDR Range used for Container Application. Example: 10.1.10.64/27"
 }
 variable "ag_subnet_cidr_range" {
   type        = string
-  description = "Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23"
-  default     = "10.1.10.0/26"
+  description = "Subnet CIDR Range used for Application Gateway. Example: 10.1.10.0/26"
 }
 variable "storage_account_subnet_cidr_range" {
   type        = string
-  description = "Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23"
-  default     = "10.1.10.96/27" # 10.1.10.96 - 10.1.10.127
+  description = "Subnet CIDR Range used for Application Gateway. Example: 10.1.10.96/27"
 }
 variable "container_image" {
   type = string
@@ -59,16 +55,23 @@ variable "port_api" {
   description = "Port for the API"
   default     = "9000"
 }
-variable "keyvault_name" {
+variable "cert_name" {
   type    = string
-  default = "miniokeyvault"
 }
-variable "kv_cert_name" {
-  type    = string
-  default = "minioapp.pfx"
-}
-variable "kv_cert_password" {
+variable "cert_password" {
   type      = string
   sensitive = true
   nullable  = false
+}
+variable "storage_share_size" {
+  type = number
+  description = "How much storage space do you need in GBs? Minimun size is 1GB and Maximum is 5120GB (5TB)"
+}
+variable "storage_account_name" {
+  type = string
+  description = "Storage Account Name. Must be globally unique across Azure Region. Suggest using Project Name"
+}
+variable "public_url_domain_name" {
+  type = string
+  description = "Domain Name to use for the public URL. Example: 'miniotest' would allow you to access MinIO from the URL 'https://miniotest.westeurope.cloudapp.azure.com'"
 }
