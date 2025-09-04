@@ -36,10 +36,6 @@ variable "ag_subnet_cidr_range" {
   type        = string
   description = "Subnet CIDR Range used for Application Gateway. Example: 10.1.10.0/26"
 }
-variable "storage_account_subnet_cidr_range" {
-  type        = string
-  description = "Subnet CIDR Range used for Application Gateway. Example: 10.1.10.96/27"
-}
 variable "container_image" {
   type = string
   default     = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
