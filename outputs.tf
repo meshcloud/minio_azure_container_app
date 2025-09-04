@@ -1,12 +1,13 @@
-output "azurerm_container_app_url" {
-  value = azurerm_container_app.minio_container_app.ingress[0].fqdn
+
+output "platform_tenant_id" {
+  value = azurerm_container_group.minio_aci_container_group.name
 }
-output "public_ip_address" {
-  value = azurerm_public_ip.minio_pip.ip_address
+output "console_url" {
+  value = "https://${azurerm_public_ip.minio_pip.fqdn}:9001"
 }
-output "application_gateway_id" {
-  value = azurerm_application_gateway.minio_appgw.id
+output "api_url" {
+  value = "https://${azurerm_public_ip.minio_pip.fqdn}:9000"
 }
-output "minio_root_username" {
+output "minio_username" {
   value = var.minio_root_user
 }

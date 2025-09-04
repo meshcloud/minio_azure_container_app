@@ -1,66 +1,65 @@
-data "azurerm_resource_group" "minio_rg" {
-  name = var.resource_group_name
+data "azurerm_resource_group" "minio_aci_rg" {
+  name     = var.resource_group_name
 }
 
-resource "azurerm_log_analytics_workspace" "minio_law" {
-  name                = "minio-law"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-}
-
-resource "azurerm_container_app_environment" "minio_app_env" {
-  name                       = "minio-environment"
-  location                   = var.location
-  resource_group_name        = var.resource_group_name
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.minio_law.id
-  infrastructure_subnet_id   = data.azurerm_subnet.minio_subnet.id
-}
-
-resource "azurerm_container_app" "minio_container_app" {
-  name                         = "minio-app"
-  container_app_environment_id = azurerm_container_app_environment.minio_app_env.id
-  resource_group_name          = var.resource_group_name
-  revision_mode                = "Single"
-
-  template {
-    min_replicas = 1
-    max_replicas = 2
-    container {
-      name    = var.container_app_name
-      image   = var.container_image
-      command = ["minio", "server", "/data", "--console-address", ":9001"]
-      cpu     = 2.0
-      memory  = "4.0Gi"
-      env {
-        name  = "MINIO_ROOT_USER"
-        value = var.minio_root_user
-      }
-      env {
-        name  = "MINIO_ROOT_PASSWORD"
-        value = var.minio_root_password
-      }
+resource "azurerm_container_group" "minio_aci_container_group" {
+  name                = "minio-aci-container-group"
+  location            = data.azurerm_resource_group.minio_aci_rg.location
+  resource_group_name = data.azurerm_resource_group.minio_aci_rg.name
+  ip_address_type     = "Private"
+  os_type             = "Linux"
+  subnet_ids          = [azurerm_subnet.minio_subnet.id]
+  diagnostics {
+    log_analytics {
+      workspace_id  = azurerm_log_analytics_workspace.minio_law.workspace_id
+      workspace_key = azurerm_log_analytics_workspace.minio_law.primary_shared_key
     }
+  }
+
+  exposed_port {
+    port     = var.port_ui
+    protocol = "TCP"
+  }
+
+  exposed_port {
+    port     = var.port_api
+    protocol = "TCP"
+  }
+
+  container {
+    name   = "minio"
+    image  = var.container_image
+    cpu    = "0.5"
+    memory = "1.5"
+
+    ports {
+      port     = var.port_ui
+      protocol = "TCP"
+    }
+    ports {
+      port     = var.port_api
+      protocol = "TCP"
+    }
+
+    environment_variables = {
+      MINIO_ROOT_USER            = var.minio_root_user
+      MINIO_ROOT_PASSWORD        = var.minio_root_password
+      MINIO_BROWSER_REDIRECT_URL = "https://${azurerm_public_ip.minio_pip.fqdn}:9001"
+    }
+
     volume {
-      name         = "minio-volume"
-      storage_name = azurerm_container_app_environment_storage.minio_app_storage.name
-      storage_type = "AzureFile"
+      name                 = "minio-volume"
+      mount_path           = "/data"
+      read_only            = false
+      storage_account_name = azurerm_storage_account.minio_storage_account.name
+      storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
+      share_name           = azurerm_storage_share.minio_storage_share.name
     }
-  }
 
-  # Console UI Port
-  ingress {
-    allow_insecure_connections = true
-    exposed_port               = 9001
-    target_port                = 9001
-    transport                  = "http"
-    external_enabled           = true
-
-    traffic_weight {
-      percentage      = 100
-      latest_revision = true
+    security {
+      privilege_enabled = true
     }
-  }
 
+    commands = ["minio", "server", "/data", "--console-address", ":9001", "--address", ":9000"]
+  }
 }
