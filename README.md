@@ -6,6 +6,8 @@ This repo deploys a MinIO Container to an Azure Container Group. The App will ut
 - Azure Subscription
 - Microsoft.App Resource Provider enabled on the Azure Subscription
   - Follow the steps here to register "Microsoft.App"https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types#register-resource-provider-1
+- Azure Resource Group
+- Azure VNET
 - SSL Cert (.pfx file) for https traffic. Password will be provided as Input Variable
 
 ## To Use
@@ -18,7 +20,8 @@ This repo deploys a MinIO Container to an Azure Container Group. The App will ut
 - **minio_root_user**: Root User for MinIO access
 - **minio_root_password**: Root Password for MinIO
 - **ingress_allow_ip_address_range**: Allowlist of IPs/IP Ranges that can access MinIO
-- **vnet_cidr_range**: CIDR Range to use for VNET creation. Example: 10.0.0.0/16
+- **resource_group_name**: Name of the Resource Group for all new resources
+- **vnet_name**: Name of the existing VNET that will be used
 - **subnet_cidr_range**: Subnet CIDR Range used for Container Application. Must be at minimum /23. Example: 10.0.0.0/23
 - **ag_subnet_cidr_range**: Subnet CIDR Range used for Application Gateway. Must be at minimum /23. Example: 10.0.10.0/23
 - **cert_name**: The name of the SSL certificate
@@ -33,7 +36,6 @@ This repo deploys a MinIO Container to an Azure Container Group. The App will ut
 - **api_url**: The URL address of the MinIO API
 
 ## Resources That Are Created
-- VNET
 - Subnet
 - WAF Policy
 - Application Gateway
