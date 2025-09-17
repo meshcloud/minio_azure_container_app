@@ -1,9 +1,9 @@
 variable "resource_group_name" {
   type    = string
+  description = "Name of the existing Resource Group where you want to deploy the MinIO Storage Bucket"
 }
 variable "location" {
   type    = string
-  default = "West Europe"
 }
 variable "container_app_name" {
   type    = string
@@ -20,7 +20,7 @@ variable "minio_root_password" {
 }
 variable "ingress_allow_ip_address_range" {
   type        = string
-  description = "Provide a list of IP CIDR ranges allowed to access the MinIO service. Use a semicolon (;) to separate multiple entries."
+  description = "Provide a list of IP CIDR ranges allowed to access the MinIO service. Use a semicolon (;) to separate multiple entries. Ex. 10.0.0.0/24;10.0.10.0/24;10.0.20.0/24"
   nullable    = false
   validation {
     condition = can(regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\/(3[0-2]|[12]?[0-9])(;((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\/(3[0-2]|[12]?[0-9]))*$", var.ingress_allow_ip_address_range))
@@ -29,19 +29,19 @@ variable "ingress_allow_ip_address_range" {
 }
 variable "vnet_name" {
   type        = string
-  description = "Name of the VNET where the application will run"
+  description = "Name of the existing VNET where the application will run"
 }
 variable "subnet_cidr_range" {
   type        = string
-  description = "Subnet CIDR Range used for Container Application. Example: 10.1.10.64/27"
+  description = "Subnet CIDR Range that will be created for the Container Application"
 }
 variable "ag_subnet_cidr_range" {
   type        = string
-  description = "Subnet CIDR Range used for Application Gateway. Example: 10.1.10.0/26"
+  description = "Subnet CIDR Range that will be created for the Application Gateway"
 }
 variable "container_image" {
   type = string
-  default     = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
+  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
   description = "Container Image used for building MinIO App. More recent versions have a limited UI."
 }
 variable "port_ui" {
@@ -68,7 +68,7 @@ variable "storage_share_size" {
 }
 variable "storage_account_name" {
   type = string
-  description = "Storage Account Name. Must be globally unique across Azure Region. Suggest using Project Name"
+  description = "MUST BE GLOBALLY UNIQUE ACROSS AZURE REGION. Suggest using Project Name"
 }
 variable "public_url_domain_name" {
   type = string
