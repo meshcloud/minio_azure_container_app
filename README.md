@@ -15,6 +15,7 @@ This repo deploys a MinIO Container to an Azure Container Group. The App will ut
 - Select Azure as the Supported Platform
 - How often can this Building Block be assigned?: Once
 - **Git Repository URL**: https://github.com/meshcloud/minio_azure_container_app.git
+- Upload the SSL Cert as a Static Input with a File Type
 
 ## Inputs
 - **minio_root_user**: Root User for MinIO access
