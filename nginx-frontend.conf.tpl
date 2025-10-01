@@ -1,19 +1,22 @@
+# Upstreams
 upstream minio_console {
-    server ${minio_ui_backend};
+    server ${minio_ui_backend};   # WAF-UI → MinIO Console
 }
 
 upstream minio_api {
-    server ${minio_api_backend};
+    server ${minio_api_backend};  # WAF-API → MinIO API
 }
 
+# HTTP redirect to HTTPS
 server {
-    listen 80;
+    listen 8080;
     server_name ${server_name};
     return 301 https://$server_name$request_uri;
 }
 
+# HTTPS - MinIO Console / UI
 server {
-    listen 443 ssl http2;
+    listen 8443 ssl http2;
     server_name ${server_name};
 
     ssl_certificate /etc/ssl/certs/server.crt;
@@ -34,14 +37,24 @@ server {
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header Cache-Control no-store;
         proxy_set_header Origin "";
-        
+
         proxy_connect_timeout 300;
+        proxy_read_timeout 300;
+        proxy_send_timeout 300;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         chunked_transfer_encoding off;
     }
+
+    # Health check endpoint
+    location /nginx-health {
+        access_log off;
+        return 200 "nginx-healthy\n";
+        add_header Content-Type text/plain;
+    }
 }
 
+# HTTPS - MinIO API
 server {
     listen 9443 ssl http2;
     server_name ${server_name};
@@ -54,7 +67,7 @@ server {
 
     client_max_body_size 1000m;
 
-    # S3 API - everything goes to MinIO API backend
+    # MinIO API
     location / {
         proxy_pass http://minio_api;
         proxy_set_header Host $http_host;
@@ -62,8 +75,10 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
-        
+
         proxy_connect_timeout 300;
+        proxy_read_timeout 300;
+        proxy_send_timeout 300;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         chunked_transfer_encoding off;
