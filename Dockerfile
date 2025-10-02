@@ -2,17 +2,17 @@
 
 # --- Versions ---
 ARG CADDY_VERSION=2.8
-ARG CORAZA_VERSION=v2.1.0
+ARG CORAZA_VERSION=v2.0.0
 
 # --- Build stage ---
 FROM caddy:${CADDY_VERSION}-builder AS builder
 
 # Redeclare ARG inside this stage so RUN can see it
-ARG CORAZA_VERSION
+ARG CORAZA_VERSION=v2.0.0
 
 # Build Caddy with Coraza WAF plugin
 RUN xcaddy build \
-    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
+    --with github.com/corazawaf/coraza-caddy/v2@${CORAZA_VERSION}
 
 # --- Runtime stage ---
 FROM caddy:${CADDY_VERSION}-alpine
