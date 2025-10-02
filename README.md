@@ -1,6 +1,6 @@
 # MinIO Azure Container App
 
-This repo deploys a MinIO Container to an **Azure Container Group** with nginx as a reverse proxy for SSL termination and security.
+This repo deploys a MinIO Container to an **Azure Container Group** with nginx for SSL termination and Coraza WAF for comprehensive security protection.
 
 ---
 
@@ -9,16 +9,15 @@ This repo deploys a MinIO Container to an **Azure Container Group** with nginx a
 ```mermaid
 flowchart TD
     subgraph External
-        A[External Traffic<br>HTTPS:443 / 9443<br>HTTP:80]
+        A[External Traffic<br>HTTPS:443 / 8443<br>HTTP:80]
     end
 
-    A --> B[Nginx Container<br>Ports: 80,443,9443<br>SSL Termination & Reverse Proxy]
+    A --> B[Nginx Container<br>Ports: 80,443,8443<br>SSL Termination & Reverse Proxy]
 
-    B --> C[ModSecurity WAF UI<br>Ports: 8080 / 8443<br>Backend → MinIO UI]
-    B --> D[ModSecurity WAF API<br>Ports: 9444<br>Backend → MinIO API]
+    B --> C[Coraza WAF Container<br>Ports: 8080, 8081<br>OWASP CRS + Rate Limiting]
 
-    C --> E[MinIO UI<br>Port 9001]
-    D --> F[MinIO API<br>Port 9000]
+    C -->|Port 8080| E[MinIO UI<br>Port 9001]
+    C -->|Port 8081| F[MinIO API<br>Port 9000]
 
     E --> G[Azure File Share / Storage Account]
     F --> G
@@ -29,8 +28,8 @@ flowchart TD
 ## Components
 
 * **MinIO Container**: Runs the object storage service (ports 9000/9001 - internal only)
-* **nginx Container**: Provides SSL termination and reverse proxy (ports 80/443/9443 - externally exposed)
-* **WAF Containers**: ModSecurity CRS protects UI (8080/8443) and API (9444)
+* **nginx Container**: Provides SSL termination and reverse proxy (ports 80/443/8443 - externally exposed)
+* **Coraza WAF Container**: Modern WAF with OWASP Core Rule Set protecting both UI (8080) and API (8081)
 * **Storage**: Uses Azure File Share for persistent data storage
 
 ---
@@ -94,7 +93,7 @@ https://your-domain.region.azurecontainer.io/
 **S3 API (for applications/tools):**
 
 ```
-https://your-domain.region.azurecontainer.io:9443/
+https://your-domain.region.azurecontainer.io:8443/
 ```
 
 ### Using MinIO Client (mc)
@@ -113,7 +112,7 @@ https://your-domain.region.azurecontainer.io:9443/
 2. **Configure MinIO Client:**
 
    ```bash
-   mc alias set myminio https://your-domain.region.azurecontainer.io:9443 your-username your-password --insecure
+   mc alias set myminio https://your-domain.region.azurecontainer.io:8443 your-username your-password --insecure
    ```
 
 3. **Create and manage buckets:**
@@ -128,7 +127,7 @@ https://your-domain.region.azurecontainer.io:9443/
 ### Using AWS CLI
 
 ```bash
-aws s3 ls --endpoint-url https://your-domain.region.azurecontainer.io:9443 --no-verify-ssl
+aws s3 ls --endpoint-url https://your-domain.region.azurecontainer.io:8443 --no-verify-ssl
 ```
 
 ---
@@ -145,7 +144,21 @@ aws s3 ls --endpoint-url https://your-domain.region.azurecontainer.io:9443 --no-
 
 ## Security Features
 
+### WAF Protection (Coraza + OWASP CRS)
+* **OWASP Core Rule Set**: Complete protection against OWASP Top 10 vulnerabilities
+* **SQL Injection Prevention**: Blocks malicious database queries
+* **XSS Protection**: Prevents cross-site scripting attacks
+* **Command Injection Blocking**: Stops OS command execution attempts
+* **Path Traversal Prevention**: Blocks directory traversal attacks
+
+### Rate Limiting (Per Source IP)
+* **MinIO UI**: 100 GET/min, 20 PUT/min, 10 POST/min
+* **MinIO S3 API**: 200 GET/min, 50 PUT/min, 10 DELETE/min
+* **Admin Endpoint Blocking**: Complete access denial to `/minio/admin`
+
+### Infrastructure Security
 * **SSL Termination**: All traffic encrypted via nginx
 * **No Direct MinIO Access**: MinIO ports not exposed externally
 * **Certificate-based Authentication**: Uses SSL certificates for secure connections
 * **Internal Communication**: Containers communicate via localhost within the container group
+* **Audit Logging**: All WAF actions logged for security monitoring
