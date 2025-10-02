@@ -9,14 +9,14 @@ upstream minio_api {
 
 # HTTP redirect to HTTPS
 server {
-    listen 8080;
+    listen 80;
     server_name ${server_name};
     return 301 https://$server_name$request_uri;
 }
 
-# HTTPS - MinIO Console / UI
+# HTTPS - MinIO Console / UI (Standard port 443)
 server {
-    listen 8443 ssl http2;
+    listen 443 ssl http2;
     server_name ${server_name};
 
     ssl_certificate /etc/ssl/certs/server.crt;
@@ -27,7 +27,7 @@ server {
 
     client_max_body_size 1000m;
 
-    # MinIO Console (UI)
+    # MinIO Console (UI) via Coraza WAF
     location / {
         proxy_pass http://minio_console;
         proxy_set_header Host $http_host;
@@ -54,9 +54,9 @@ server {
     }
 }
 
-# HTTPS - MinIO API
+# HTTPS - MinIO S3 API (Port 8443 for S3 clients)
 server {
-    listen 9443 ssl http2;
+    listen 8443 ssl http2;
     server_name ${server_name};
 
     ssl_certificate /etc/ssl/certs/server.crt;
@@ -67,7 +67,7 @@ server {
 
     client_max_body_size 1000m;
 
-    # MinIO API
+    # MinIO S3 API via Coraza WAF
     location / {
         proxy_pass http://minio_api;
         proxy_set_header Host $http_host;
@@ -85,9 +85,9 @@ server {
     }
 
     # Health check endpoint
-    location /health {
+    location /api-health {
         access_log off;
-        return 200 "healthy\n";
+        return 200 "api-healthy\n";
         add_header Content-Type text/plain;
     }
 }

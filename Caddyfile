@@ -33,37 +33,29 @@
 			SecRule REQUEST_METHOD "@streq DELETE" \
 				"id:1002,phase:1,log,msg:'DELETE operation logged for audit'"
 			
-			# Rate limiting for API endpoints
-			SecRule REQUEST_URI "@beginsWith /api/" \
-				"id:1003,phase:1,pass,msg:'API rate limit check',\
-				setvar:'ip.api_requests=+1',\
-				expirevar:'ip.api_requests=60'"
+			# Rate limiting for bucket operations
+			SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" \
+				"id:1003,phase:1,pass,msg:'Bucket operation rate limit check',\
+				setvar:'ip.bucket_ops=+1',\
+				expirevar:'ip.bucket_ops=60'"
 			
-			SecRule IP:API_REQUESTS "@gt 100" \
-				"id:1004,phase:1,deny,status:429,msg:'API rate limit exceeded'"
+			SecRule IP:BUCKET_OPS "@gt 50" \
+				"id:1004,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
 		`
 	}
 }
 
-# Health check endpoint
+# WAF endpoint for MinIO Console UI (nginx → port 8080 → MinIO UI)
 :8080 {
+	# Health check endpoint (for nginx and container health checks)
 	handle /health {
-		respond "OK" 200
+		respond "WAF-UI-OK" 200
 	}
-	
-	# Redirect all other HTTP traffic to HTTPS
-	redir https://{host}{uri} permanent
-}
-
-# Main HTTPS server with WAF protection
-:8443 {
-	# TLS configuration
-	tls internal
 	
 	# Apply Coraza WAF to all requests
 	coraza_waf
 	
-	# MinIO Console (UI) - Default route
+	# Forward to MinIO Console
 	handle /* {
 		reverse_proxy {$MINIO_UI_BACKEND:localhost:9001} {
 			header_up Host {upstream_hostport}
@@ -79,8 +71,26 @@
 		}
 	}
 	
-	# MinIO S3 API
-	handle /api/* {
+	# Logging
+	log {
+		output stdout
+		format json
+		level INFO
+	}
+}
+
+# WAF endpoint for MinIO S3 API (nginx → port 8081 → MinIO API)  
+:8081 {
+	# Health check endpoint 
+	handle /health {
+		respond "WAF-API-OK" 200
+	}
+	
+	# Apply Coraza WAF to all requests
+	coraza_waf
+	
+	# Forward to MinIO S3 API (no path modification - S3 clients need root access)
+	handle /* {
 		reverse_proxy {$MINIO_API_BACKEND:localhost:9000} {
 			header_up Host {upstream_hostport}
 			header_up X-Real-IP {remote_host}
@@ -95,35 +105,9 @@
 		}
 	}
 	
-	# S3 API direct access (for bucket operations)
-	handle /s3/* {
-		uri strip_prefix /s3
-		reverse_proxy {$MINIO_API_BACKEND:localhost:9000} {
-			header_up Host {upstream_hostport}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Forwarded-Host {host}
-		}
-	}
-	
-	# Security headers
-	header {
-		# Security headers
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		
-		# Remove server info
-		-Server
-		-X-Powered-By
-	}
-	
 	# Logging
 	log {
-		output stdout
+		output stdout  
 		format json
 		level INFO
 	}

@@ -19,21 +19,21 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
   }
 
-  # HTTPS port (nginx handles standard ports)  
+  # HTTP port (redirects to HTTPS)
+  exposed_port {
+    port     = 80
+    protocol = "TCP"
+  }
+
+  # HTTPS port (MinIO Console UI)
+  exposed_port {
+    port     = 443
+    protocol = "TCP"
+  }
+
+  # HTTPS API port (MinIO S3 API)
   exposed_port {
     port     = 8443
-    protocol = "TCP"
-  }
-
-  # HTTP port (nginx handles standard ports)
-  exposed_port {
-    port     = 8080
-    protocol = "TCP"
-  }
-
-  # API Port 
-  exposed_port {
-    port     = 9443
     protocol = "TCP"
   }
 
@@ -100,17 +100,17 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     memory_limit = var.waf_memory_limit
 
     ports {
+      port     = 80
+      protocol = "TCP"
+    }
+
+    ports {
+      port     = 443
+      protocol = "TCP"
+    }
+
+    ports {
       port     = 8443
-      protocol = "TCP"
-    }
-
-    ports {
-      port     = 8080
-      protocol = "TCP"
-    }
-
-    ports {
-      port     = 9443
       protocol = "TCP"
     }
 
@@ -124,8 +124,8 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       secret = {
         "default.conf" = base64encode(templatefile("${path.module}/nginx-frontend.conf.tpl", {
           server_name       = "${var.public_url_domain_name}.${azurerm_resource_group.minio_aci_rg.location}.azurecontainer.io"
-          minio_ui_backend  = "localhost:80"
-          minio_api_backend = "localhost:9444"
+          minio_ui_backend  = "localhost:8080"
+          minio_api_backend = "localhost:8081"
         }))
       }
     }
@@ -143,86 +143,35 @@ resource "azurerm_container_group" "minio_aci_container_group" {
   }
 
   container {
-    name         = "modsecurity-waf-minio-ui"
-    image        = "owasp/modsecurity-crs:3.3-nginx"
-    cpu          = "0.5"
+    name         = "coraza-waf"
+    image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-341f2aa"
+    cpu          = "1.0"
     memory       = "1.0"
     cpu_limit    = var.waf_cpu_limit
     memory_limit = var.waf_memory_limit
 
     ports {
-      port     = 80
+      port     = 8080  # WAF endpoint for MinIO UI
       protocol = "TCP"
     }
-
-    environment_variables = {
-      BACKEND                   = "http://localhost:9001"
-      PORT                      = "80"
-      NGINX_ALWAYS_TLS_REDIRECT = "off"
-      SERVER_NAME               = "${var.public_url_domain_name}.${azurerm_resource_group.minio_aci_rg.location}.azurecontainer.io"
-      ERRORLOG                  = "/dev/stderr"
-      ACCESSLOG                 = "/dev/stdout"
-      MODSEC_RULE_ENGINE        = "On"
-      BLOCKING_PARANOIA         = "1"
-    }
-
-    liveness_probe {
-      http_get {
-        path   = "/healthz"
-        port   = 80
-        scheme = "http"
-      }
-      initial_delay_seconds = 60
-      period_seconds        = 10
-      timeout_seconds       = 5
-      failure_threshold     = 3
-    }
-
-    readiness_probe {
-      http_get {
-        path   = "/healthz"
-        port   = 80
-        scheme = "http"
-      }
-      initial_delay_seconds = 60
-      period_seconds        = 5
-      timeout_seconds       = 3
-      failure_threshold     = 3
-    }
-  }
-
-
-  container {
-    name         = "modsecurity-waf-minio-api"
-    image        = "owasp/modsecurity-crs:3.3-nginx"
-    cpu          = "1.0"
-    memory       = "1.5"
-    cpu_limit    = var.waf_cpu_limit
-    memory_limit = var.waf_memory_limit
 
     ports {
-      port     = 9444
+      port     = 8081  # WAF endpoint for MinIO API
       protocol = "TCP"
     }
 
     environment_variables = {
-      BACKEND                   = "http://localhost:9000"
-      PORT                      = "9444"
-      NGINX_ALWAYS_TLS_REDIRECT = "off"
-      SERVER_NAME               = "${var.public_url_domain_name}.${azurerm_resource_group.minio_aci_rg.location}.azurecontainer.io"
-      ERRORLOG                  = "/dev/stderr"
-      ACCESSLOG                 = "/dev/stdout"
-      MODSEC_RULE_ENGINE        = "On"
-      BLOCKING_PARANOIA         = "1"
+      MINIO_UI_BACKEND  = "localhost:9001"
+      MINIO_API_BACKEND = "localhost:9000"
     }
 
     liveness_probe {
       http_get {
-        path   = "/healthz"
-        port   = 9444
+        path   = "/health"
+        port   = 8080
         scheme = "http"
       }
-      initial_delay_seconds = 60
+      initial_delay_seconds = 30
       period_seconds        = 10
       timeout_seconds       = 5
       failure_threshold     = 3
@@ -230,11 +179,11 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
     readiness_probe {
       http_get {
-        path   = "/healthz"
-        port   = 9444
+        path   = "/health"
+        port   = 8080
         scheme = "http"
       }
-      initial_delay_seconds = 60
+      initial_delay_seconds = 30
       period_seconds        = 5
       timeout_seconds       = 3
       failure_threshold     = 3

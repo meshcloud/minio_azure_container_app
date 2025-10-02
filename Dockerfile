@@ -37,7 +37,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 USER caddy
 
 # Expose ports
-EXPOSE 8080 8443
+EXPOSE 8080 8081
 
 # Set working directory
 WORKDIR /var/lib/caddy
