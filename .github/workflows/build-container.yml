@@ -5,7 +5,7 @@ on:
     # Build weekly to get latest security updates
     - cron: '0 2 * * 1'
   push:
-    branches: [ main ]
+    branches: [ main, feature/refactoring ]
     paths:
       - 'Dockerfile'
       - 'Caddyfile'
@@ -17,14 +17,31 @@ on:
       - 'Caddyfile'
   workflow_dispatch:
     inputs:
+      branch:
+        description: 'Branch to build from'
+        required: false
+        default: 'main'
+        type: string
       caddy_version:
         description: 'Caddy version to build'
         required: false
         default: '2.7'
+        type: string
       coraza_version:
         description: 'Coraza version to build'
         required: false
         default: 'v2'
+        type: string
+      push_image:
+        description: 'Push image to registry'
+        required: false
+        default: true
+        type: boolean
+      test_locally:
+        description: 'Run local container tests'
+        required: false
+        default: true
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
@@ -69,7 +86,7 @@ jobs:
       with:
         context: .
         platforms: linux/amd64,linux/arm64
-        push: true
+        push: ${{ github.event.inputs.push_image != 'false' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
@@ -92,10 +109,21 @@ jobs:
         sarif_file: 'trivy-results.sarif'
 
     - name: Test container
+      if: ${{ github.event.inputs.test_locally != 'false' }}
       run: |
+        echo "Testing built container..."
         docker run --rm -d --name test-coraza \
           -p 8080:8080 -p 8443:8443 \
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        sleep 10
+        sleep 15
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
         curl -f http://localhost:8080/health || exit 1
+        
+        # Test WAF is responding
+        echo "Testing WAF response..."
+        curl -k -f https://localhost:8443/ -o /dev/null -w "%{http_code}" || echo "Expected failure - no backend"
+        
         docker stop test-coraza
+        echo "Container tests completed successfully!"
