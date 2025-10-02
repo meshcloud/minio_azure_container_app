@@ -91,7 +91,7 @@ variable "waf_cpu_limit" {
 
 variable "waf_memory_limit" {
   type        = number
-  default     = 1.5
+  default     = 2.0
   description = "Maximum memory in GB for WAF container"
   validation {
     condition     = var.waf_memory_limit >= 0.5 && var.waf_memory_limit <= 4.0
