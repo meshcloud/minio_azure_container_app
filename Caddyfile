@@ -1,114 +1,80 @@
 {
-	# Enable Coraza WAF globally
-	order coraza_waf first
-	
-	# Global Coraza configuration
-	coraza_waf {
-		# Load OWASP Core Rule Set
-		load_owasp_crs
-		
-		# WAF configuration directives
-		directives `
-			# Basic WAF Engine Configuration
-			SecRuleEngine On
-			SecRequestBodyAccess On
-			SecResponseBodyAccess Off
-			SecRequestBodyLimit 134217728
-			SecRequestBodyNoFilesLimit 1048576
-			SecRequestBodyInMemoryLimit 131072
-			SecRequestBodyLimitAction Reject
-			SecPcreMatchLimit 100000
-			SecPcreMatchLimitRecursion 100000
-			
-			# Audit Logging
-			SecAuditEngine RelevantOnly
-			SecAuditLogParts ABDEFHIJZ
-			SecAuditLogFormat JSON
-			SecAuditLog /dev/stdout
-			
-			# Custom rules for MinIO protection
-			SecRule REQUEST_URI "@beginsWith /minio/admin" \
-				"id:1001,phase:1,deny,status:403,msg:'MinIO Admin API Access Blocked'"
-			
-			SecRule REQUEST_METHOD "@streq DELETE" \
-				"id:1002,phase:1,log,msg:'DELETE operation logged for audit'"
-			
-			# Rate limiting for bucket operations
-			SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" \
-				"id:1003,phase:1,pass,msg:'Bucket operation rate limit check',\
-				setvar:'ip.bucket_ops=+1',\
-				expirevar:'ip.bucket_ops=60'"
-			
-			SecRule IP:BUCKET_OPS "@gt 50" \
-				"id:1004,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
-		`
-	}
+    # Global options
+    order coraza_waf first
 }
 
-# WAF endpoint for MinIO Console UI (nginx → port 8080 → MinIO UI)
+# --- WAF for MinIO UI (port 8080) ---
 :8080 {
-	# Health check endpoint (for nginx and container health checks)
-	handle /health {
-		respond "WAF-UI-OK" 200
-	}
-	
-	# Apply Coraza WAF to all requests
-	coraza_waf
-	
-	# Forward to MinIO Console
-	handle /* {
-		reverse_proxy {$MINIO_UI_BACKEND:localhost:9001} {
-			header_up Host {upstream_hostport}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Forwarded-Host {host}
-			
-			# Health check for backend
-			health_uri /minio/health/live
-			health_interval 30s
-			health_timeout 10s
-		}
-	}
-	
-	# Logging
-	log {
-		output stdout
-		format json
-		level INFO
-	}
+    handle /health {
+        respond "WAF-UI-OK" 200
+    }
+
+    route {
+        coraza_waf {
+            load_owasp_crs
+
+            directives `
+                # Step 1: Initialize TX collection
+                SecAction "id:1,phase:1,pass,nolog,initcol:tx=tx"
+
+                # Step 2: Initialize TX variable
+                SecAction "id:2,phase:1,pass,nolog,setvar:tx.bucket_ops=0"
+
+                # Example rule: Block DELETE on /minio/admin
+                SecRule REQUEST_URI "@beginsWith /minio/admin" "id:1001,phase:1,deny,status:403,msg:'MinIO Admin API Access Blocked'"
+
+                # Rate limiting example
+                SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" "id:1002,phase:1,pass,msg:'Bucket operation',setvar:tx.bucket_ops=+1,expirevar:tx.bucket_ops=60"
+                SecRule TX:bucket_ops "@gt 50" "id:1003,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
+            `
+        }
+
+        reverse_proxy {$MINIO_UI_BACKEND:9001} {
+            health_uri /minio/health/live
+        }
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
 }
 
-# WAF endpoint for MinIO S3 API (nginx → port 8081 → MinIO API)  
+# --- WAF for MinIO API (port 8081) ---
 :8081 {
-	# Health check endpoint 
-	handle /health {
-		respond "WAF-API-OK" 200
-	}
-	
-	# Apply Coraza WAF to all requests
-	coraza_waf
-	
-	# Forward to MinIO S3 API (no path modification - S3 clients need root access)
-	handle /* {
-		reverse_proxy {$MINIO_API_BACKEND:localhost:9000} {
-			header_up Host {upstream_hostport}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Forwarded-Host {host}
-			
-			# Health check for backend
-			health_uri /minio/health/live
-			health_interval 30s
-			health_timeout 10s
-		}
-	}
-	
-	# Logging
-	log {
-		output stdout  
-		format json
-		level INFO
-	}
+    handle /health {
+        respond "WAF-API-OK" 200
+    }
+
+    route {
+        coraza_waf {
+            load_owasp_crs
+
+            directives `
+                # Step 1: Initialize TX collection
+                SecAction "id:10,phase:1,pass,nolog,initcol:tx=tx"
+
+                # Step 2: Initialize TX variable
+                SecAction "id:11,phase:1,pass,nolog,setvar:tx.bucket_ops=0"
+
+                # Example rule: Log DELETE operations
+                SecRule REQUEST_METHOD "@streq DELETE" "id:2001,phase:1,log,msg:'DELETE operation logged'"
+
+                # Rate limiting example
+                SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" "id:2002,phase:1,pass,msg:'Bucket operation',setvar:tx.bucket_ops=+1,expirevar:tx.bucket_ops=60"
+                SecRule TX:bucket_ops "@gt 50" "id:2003,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
+            `
+        }
+
+        reverse_proxy {$MINIO_API_BACKEND:9000} {
+            health_uri /minio/health/live
+        }
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
 }

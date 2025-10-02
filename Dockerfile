@@ -1,15 +1,20 @@
 # Multi-stage build for Coraza-Caddy WAF
-ARG CADDY_VERSION=2.7
-ARG CORAZA_VERSION=v2
 
-# Build stage
+# --- Versions ---
+ARG CADDY_VERSION=2.8
+ARG CORAZA_VERSION=v2.0.0
+
+# --- Build stage ---
 FROM caddy:${CADDY_VERSION}-builder AS builder
+
+# Redeclare ARG inside this stage so RUN can see it
+ARG CORAZA_VERSION
 
 # Build Caddy with Coraza WAF plugin
 RUN xcaddy build \
-    --with github.com/corazawaf/coraza-caddy/${CORAZA_VERSION}
+    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
 
-# Runtime stage - using Alpine for smaller image
+# --- Runtime stage ---
 FROM caddy:${CADDY_VERSION}-alpine
 
 # Copy the custom Caddy binary with Coraza
@@ -36,8 +41,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Switch to non-root user
 USER caddy
 
-# Expose ports
-EXPOSE 8080 8081
+# Expose ports (8080 = HTTP, 8443 = HTTPS)
+EXPOSE 8080 8443
 
 # Set working directory
 WORKDIR /var/lib/caddy
