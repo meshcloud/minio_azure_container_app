@@ -2,7 +2,7 @@
 
 # --- Versions ---
 ARG CADDY_VERSION=2.8
-ARG CORAZA_VERSION=v2.0.0
+ARG CORAZA_VERSION=v2.1.0
 
 # --- Build stage ---
 FROM caddy:${CADDY_VERSION}-builder AS builder
