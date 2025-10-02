@@ -12,7 +12,7 @@ ARG CORAZA_VERSION=v2.0.0
 
 # Build Caddy with Coraza WAF plugin
 RUN xcaddy build \
-    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
+    --with github.com/corazawaf/coraza-caddy@v2.0.0
 
 # --- Runtime stage ---
 FROM caddy:2.8-alpine
