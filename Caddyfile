@@ -1,0 +1,130 @@
+{
+	# Enable Coraza WAF globally
+	order coraza_waf first
+	
+	# Global Coraza configuration
+	coraza_waf {
+		# Load OWASP Core Rule Set
+		load_owasp_crs
+		
+		# WAF configuration directives
+		directives `
+			# Basic WAF Engine Configuration
+			SecRuleEngine On
+			SecRequestBodyAccess On
+			SecResponseBodyAccess Off
+			SecRequestBodyLimit 134217728
+			SecRequestBodyNoFilesLimit 1048576
+			SecRequestBodyInMemoryLimit 131072
+			SecRequestBodyLimitAction Reject
+			SecPcreMatchLimit 100000
+			SecPcreMatchLimitRecursion 100000
+			
+			# Audit Logging
+			SecAuditEngine RelevantOnly
+			SecAuditLogParts ABDEFHIJZ
+			SecAuditLogFormat JSON
+			SecAuditLog /dev/stdout
+			
+			# Custom rules for MinIO protection
+			SecRule REQUEST_URI "@beginsWith /minio/admin" \
+				"id:1001,phase:1,deny,status:403,msg:'MinIO Admin API Access Blocked'"
+			
+			SecRule REQUEST_METHOD "@streq DELETE" \
+				"id:1002,phase:1,log,msg:'DELETE operation logged for audit'"
+			
+			# Rate limiting for API endpoints
+			SecRule REQUEST_URI "@beginsWith /api/" \
+				"id:1003,phase:1,pass,msg:'API rate limit check',\
+				setvar:'ip.api_requests=+1',\
+				expirevar:'ip.api_requests=60'"
+			
+			SecRule IP:API_REQUESTS "@gt 100" \
+				"id:1004,phase:1,deny,status:429,msg:'API rate limit exceeded'"
+		`
+	}
+}
+
+# Health check endpoint
+:8080 {
+	handle /health {
+		respond "OK" 200
+	}
+	
+	# Redirect all other HTTP traffic to HTTPS
+	redir https://{host}{uri} permanent
+}
+
+# Main HTTPS server with WAF protection
+:8443 {
+	# TLS configuration
+	tls internal
+	
+	# Apply Coraza WAF to all requests
+	coraza_waf
+	
+	# MinIO Console (UI) - Default route
+	handle /* {
+		reverse_proxy {$MINIO_UI_BACKEND:localhost:9001} {
+			header_up Host {upstream_hostport}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+			
+			# Health check for backend
+			health_uri /minio/health/live
+			health_interval 30s
+			health_timeout 10s
+		}
+	}
+	
+	# MinIO S3 API
+	handle /api/* {
+		reverse_proxy {$MINIO_API_BACKEND:localhost:9000} {
+			header_up Host {upstream_hostport}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+			
+			# Health check for backend
+			health_uri /minio/health/live
+			health_interval 30s
+			health_timeout 10s
+		}
+	}
+	
+	# S3 API direct access (for bucket operations)
+	handle /s3/* {
+		uri strip_prefix /s3
+		reverse_proxy {$MINIO_API_BACKEND:localhost:9000} {
+			header_up Host {upstream_hostport}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
+	}
+	
+	# Security headers
+	header {
+		# Security headers
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		
+		# Remove server info
+		-Server
+		-X-Powered-By
+	}
+	
+	# Logging
+	log {
+		output stdout
+		format json
+		level INFO
+	}
+}
