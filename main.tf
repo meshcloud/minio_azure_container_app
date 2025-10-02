@@ -144,19 +144,19 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
   container {
     name         = "coraza-waf"
-    image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-341f2aa"
+    image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-ab58e91"
     cpu          = "1.0"
     memory       = "1.0"
     cpu_limit    = var.waf_cpu_limit
     memory_limit = var.waf_memory_limit
 
     ports {
-      port     = 8080  # WAF endpoint for MinIO UI
+      port     = 8080 # WAF endpoint for MinIO UI
       protocol = "TCP"
     }
 
     ports {
-      port     = 8081  # WAF endpoint for MinIO API
+      port     = 8081 # WAF endpoint for MinIO API
       protocol = "TCP"
     }
 
