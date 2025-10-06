@@ -123,10 +123,15 @@ jobs:
     - name: Test container
       if: ${{ github.event.inputs.test_locally != 'false' }}
       run: |
+        set -euo pipefail
+        IMAGE_TAG=${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        echo "🧪 Testing image: $IMAGE_TAG"
+
         echo "Testing built container..."
         docker run --rm -d --name test-coraza \
           -p 8080:8080 -p 8443:8443 \
-          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          $IMAGE_TAG
+
         sleep 15
 
         # Test health endpoint
