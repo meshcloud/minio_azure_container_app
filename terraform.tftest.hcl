@@ -10,7 +10,7 @@ run "complete_minio_deployment" {
     ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 100
-    storage_account_name   = "testminiostorage001"
+    storage_account_name   = "testminio" # prefix only
     public_url_domain_name = "testminio"
   }
 
@@ -62,12 +62,7 @@ run "complete_minio_deployment" {
     error_message = "Container group should expose MinIO API port 8443"
   }
 
-  # Test storage configuration
-  assert {
-    condition     = azurerm_storage_account.minio_storage_account.name == var.storage_account_name
-    error_message = "Storage account should use the specified name"
-  }
-
+  # Test storage configuration (prefix + random suffix handled in resource)
   assert {
     condition     = azurerm_storage_share.minio_storage_share.quota == var.storage_share_size
     error_message = "Storage share should use the specified size"
@@ -111,7 +106,7 @@ run "nginx_ssl_configuration" {
     ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 100
-    storage_account_name   = "testminiostorage002"
+    storage_account_name   = "testminio002"
     public_url_domain_name = "testminio"
   }
 
@@ -152,7 +147,7 @@ run "storage_size_validation" {
     ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 1000
-    storage_account_name   = "testminiostorage003"
+    storage_account_name   = "testminio003"
     public_url_domain_name = "testminio"
   }
 
@@ -177,7 +172,7 @@ run "invalid_storage_size" {
     ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 0
-    storage_account_name   = "testminiostorage004"
+    storage_account_name   = "testminio004"
     public_url_domain_name = "testminio"
   }
 }
@@ -197,7 +192,7 @@ run "invalid_storage_size_too_large" {
     ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 6000
-    storage_account_name   = "testminiostorage005"
+    storage_account_name   = "testminio005"
     public_url_domain_name = "testminio"
   }
 }
@@ -216,7 +211,7 @@ run "empty_credentials" {
     minio_root_password    = ""
     cert_password          = "CertPassword123!"
     storage_share_size     = 100
-    storage_account_name   = "testminiostorage006"
+    storage_account_name   = "testminio006"
     public_url_domain_name = "testminio"
   }
 }
@@ -236,7 +231,7 @@ run "missing_certificate" {
     ssl_key_file           = "server-tftest.key"
     cert_password          = ""
     storage_share_size     = 100
-    storage_account_name   = "testminiostorage007"
+    storage_account_name   = "testminio007"
     public_url_domain_name = "testminio"
   }
 }

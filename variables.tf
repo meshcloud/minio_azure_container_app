@@ -4,11 +4,13 @@ variable "resource_group_name" {
 }
 
 variable "location" {
+  default     = "West Europe"
   type        = string
   description = "Azure region for deployment"
 }
 
 variable "minio_root_user" {
+  default     = "minioadmin"
   type        = string
   nullable    = false
   description = "MinIO root username for admin access"
@@ -41,6 +43,7 @@ variable "cert_password" {
 }
 
 variable "storage_share_size" {
+  default     = 100
   type        = number
   description = "Storage space needed in GBs (minimum 1GB, maximum 5120GB/5TB)"
   validation {
@@ -51,8 +54,14 @@ variable "storage_share_size" {
 
 variable "storage_account_name" {
   type        = string
-  description = "Storage Account Name (must be globally unique across Azure)"
+  default     = "miniostorage"
+  description = "Storage Account Name prefix (random suffix will be added for global uniqueness)"
+  validation {
+    condition     = can(regex("^[a-z0-9]{3,24}$", var.storage_account_name))
+    error_message = "Storage account name prefix must be 3-24 characters, lowercase letters and numbers only. No special characters or uppercase letters allowed."
+  }
 }
+
 
 variable "public_url_domain_name" {
   type        = string

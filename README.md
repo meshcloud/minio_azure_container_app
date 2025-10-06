@@ -169,6 +169,7 @@ aws s3 ls --endpoint-url https://your-domain.region.azurecontainer.io:8443 --no-
 | Name | Version |
 |------|---------|
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | 4.36.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.1 |
 
 ## Modules
 
@@ -183,6 +184,7 @@ No modules.
 | [azurerm_resource_group.minio_aci_rg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/resource_group) | resource |
 | [azurerm_storage_account.minio_storage_account](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_account) | resource |
 | [azurerm_storage_share.minio_storage_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
+| [random_string.storage_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 
 ## Inputs
 
@@ -190,17 +192,17 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_cert_password"></a> [cert\_password](#input\_cert\_password) | Password for the SSL certificate | `string` | n/a | yes |
 | <a name="input_coraza_waf_image"></a> [coraza\_waf\_image](#input\_coraza\_waf\_image) | Coraza WAF container image | `string` | `"ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"` | no |
-| <a name="input_location"></a> [location](#input\_location) | Azure region for deployment | `string` | n/a | yes |
+| <a name="input_location"></a> [location](#input\_location) | Azure region for deployment | `string` | `"West Europe"` | no |
 | <a name="input_minio_image"></a> [minio\_image](#input\_minio\_image) | MinIO container image | `string` | `"quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"` | no |
 | <a name="input_minio_root_password"></a> [minio\_root\_password](#input\_minio\_root\_password) | MinIO root password for admin access | `string` | n/a | yes |
-| <a name="input_minio_root_user"></a> [minio\_root\_user](#input\_minio\_root\_user) | MinIO root username for admin access | `string` | n/a | yes |
+| <a name="input_minio_root_user"></a> [minio\_root\_user](#input\_minio\_root\_user) | MinIO root username for admin access | `string` | `"minioadmin"` | no |
 | <a name="input_nginx_image"></a> [nginx\_image](#input\_nginx\_image) | Nginx container image | `string` | `"mcr.microsoft.com/azurelinux/base/nginx:1.25"` | no |
 | <a name="input_public_url_domain_name"></a> [public\_url\_domain\_name](#input\_public\_url\_domain\_name) | Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io') | `string` | n/a | yes |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Name of the Resource Group where you want to deploy MinIO | `string` | n/a | yes |
 | <a name="input_ssl_cert_file"></a> [ssl\_cert\_file](#input\_ssl\_cert\_file) | Name of the SSL certificate file | `string` | `"server.crt"` | no |
 | <a name="input_ssl_key_file"></a> [ssl\_key\_file](#input\_ssl\_key\_file) | Name of the SSL private key file | `string` | `"server.key"` | no |
-| <a name="input_storage_account_name"></a> [storage\_account\_name](#input\_storage\_account\_name) | Storage Account Name (must be globally unique across Azure) | `string` | n/a | yes |
-| <a name="input_storage_share_size"></a> [storage\_share\_size](#input\_storage\_share\_size) | Storage space needed in GBs (minimum 1GB, maximum 5120GB/5TB) | `number` | n/a | yes |
+| <a name="input_storage_account_name"></a> [storage\_account\_name](#input\_storage\_account\_name) | Storage Account Name prefix (random suffix will be added for global uniqueness) | `string` | `"miniostorage"` | no |
+| <a name="input_storage_share_size"></a> [storage\_share\_size](#input\_storage\_share\_size) | Storage space needed in GBs (minimum 1GB, maximum 5120GB/5TB) | `number` | `100` | no |
 
 ## Outputs
 
