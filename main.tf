@@ -132,7 +132,6 @@ resource "azurerm_container_group" "minio_aci_container_group" {
           server_name       = "${var.public_url_domain_name}.${azurerm_resource_group.minio_aci_rg.location}.azurecontainer.io"
           minio_ui_backend  = "localhost:8080"
           minio_api_backend = "localhost:8081"
-          allowed_ips       = var.allowed_ip_addresses
         }))
       }
     }
@@ -170,7 +169,6 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     environment_variables = {
       MINIO_UI_BACKEND  = "localhost:9001"
       MINIO_API_BACKEND = "localhost:9000"
-      ALLOWED_IPS       = join(",", var.allowed_ip_addresses)
     }
 
     liveness_probe {
