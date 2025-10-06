@@ -29,11 +29,6 @@ variable "minio_root_password" {
   }
 }
 
-variable "cert_name" {
-  type        = string
-  description = "Name of the SSL certificate file (e.g., minio-cert.pfx)"
-}
-
 variable "cert_password" {
   type        = string
   sensitive   = true
@@ -65,52 +60,32 @@ variable "public_url_domain_name" {
 }
 
 # Container configurations
-variable "containers" {
-  type = object({
-    minio = object({
-      image        = string
-      cpu          = string
-      memory       = string
-      cpu_limit    = number
-      memory_limit = number
-    })
-    nginx = object({
-      image        = string
-      cpu          = string
-      memory       = string
-      cpu_limit    = number
-      memory_limit = number
-    })
-    coraza_waf = object({
-      image        = string
-      cpu          = string
-      memory       = string
-      cpu_limit    = number
-      memory_limit = number
-    })
-  })
-  default = {
-    minio = {
-      image        = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-      cpu          = "0.5"
-      memory       = "1.5"
-      cpu_limit    = 1.0
-      memory_limit = 2.0
-    }
-    nginx = {
-      image        = "mcr.microsoft.com/azurelinux/base/nginx:1.25"
-      cpu          = "0.5"
-      memory       = "1.0"
-      cpu_limit    = 1.0
-      memory_limit = 2.0
-    }
-    coraza_waf = {
-      image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
-      cpu          = "1.0"
-      memory       = "1.0"
-      cpu_limit    = 1.0
-      memory_limit = 2.0
-    }
-  }
-  description = "Container specifications including images, CPU, and memory limits"
+variable "ssl_cert_file" {
+  type        = string
+  default     = "server.crt"
+  description = "Name of the SSL certificate file"
+}
+
+variable "ssl_key_file" {
+  type        = string
+  default     = "server.key"
+  description = "Name of the SSL private key file"
+}
+
+variable "minio_image" {
+  type        = string
+  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+  description = "MinIO container image"
+}
+
+variable "nginx_image" {
+  type        = string
+  default     = "mcr.microsoft.com/azurelinux/base/nginx:1.25"
+  description = "Nginx container image"
+}
+
+variable "coraza_waf_image" {
+  type        = string
+  default     = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
+  description = "Coraza WAF container image"
 }

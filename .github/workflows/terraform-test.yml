@@ -47,24 +47,25 @@ jobs:
     - name: Terraform Validate
       run: terraform validate
 
-  terraform-test:
-    name: Terraform Test Suite
-    runs-on: ubuntu-latest
-    needs: terraform-checks
-    permissions:
-      contents: read
+# TODO: creating a subccription and a service principal for testing
+  # terraform-test:
+  #   name: Terraform Test Suite
+  #   runs-on: ubuntu-latest
+  #   needs: terraform-checks
+  #   permissions:
+  #     contents: read
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
 
-    - name: Setup environment
-      uses: ./.github/actions/setup-nix-shell
-      with:
-        prepare_terraform: true
+  #   - name: Setup environment
+  #     uses: ./.github/actions/setup-nix-shell
+  #     with:
+  #       prepare_terraform: true
 
-    - name: Terraform Init
-      run: terraform init -backend=false
+  #   - name: Terraform Init
+  #     run: terraform init -backend=false
 
-    - name: Terraform Test
-      run: terraform test
+  #   - name: Terraform Test
+  #     run: terraform test

@@ -39,13 +39,13 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
   container {
     name   = "minio"
-    image  = var.containers.minio.image
-    cpu    = var.containers.minio.cpu
-    memory = var.containers.minio.memory
+    image  = var.minio_image
+    cpu    = "0.5"
+    memory = "1.5"
 
     # Resource limits to prevent runaway consumption
-    cpu_limit    = var.containers.minio.cpu_limit
-    memory_limit = var.containers.minio.memory_limit
+    cpu_limit    = 1.0
+    memory_limit = 2.0
 
     ports {
       port     = 9001
@@ -91,13 +91,13 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
   container {
     name   = "nginx"
-    image  = var.containers.nginx.image
-    cpu    = var.containers.nginx.cpu
-    memory = var.containers.nginx.memory
+    image  = var.nginx_image
+    cpu    = "0.5"
+    memory = "1.0"
 
     # Resource limits to prevent runaway consumption
-    cpu_limit    = var.containers.nginx.cpu_limit
-    memory_limit = var.containers.nginx.memory_limit
+    cpu_limit    = 1.0
+    memory_limit = 2.0
 
     ports {
       port     = 80
@@ -136,19 +136,19 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       read_only  = true
 
       secret = {
-        "server.crt" = filebase64("server.crt")
-        "server.key" = filebase64("server.key")
+        "server.crt" = filebase64(var.ssl_cert_file)
+        "server.key" = filebase64(var.ssl_key_file)
       }
     }
   }
 
   container {
     name         = "coraza-waf"
-    image        = var.containers.coraza_waf.image
-    cpu          = var.containers.coraza_waf.cpu
-    memory       = var.containers.coraza_waf.memory
-    cpu_limit    = var.containers.coraza_waf.cpu_limit
-    memory_limit = var.containers.coraza_waf.memory_limit
+    image        = var.coraza_waf_image
+    cpu          = "1.0"
+    memory       = "1.0"
+    cpu_limit    = 1.0
+    memory_limit = 2.0
 
     ports {
       port     = 8080 # WAF endpoint for MinIO UI

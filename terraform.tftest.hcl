@@ -6,7 +6,8 @@ run "complete_minio_deployment" {
     location               = "West Europe"
     minio_root_user        = "minioadmin"
     minio_root_password    = "SuperSecret123!"
-    cert_name              = "minio-cert.pfx"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 100
     storage_account_name   = "testminiostorage001"
@@ -25,17 +26,17 @@ run "complete_minio_deployment" {
   }
 
   assert {
-    condition     = azurerm_container_group.minio_aci_container_group.container[0].image == var.containers.minio.image
+    condition     = azurerm_container_group.minio_aci_container_group.container[0].image == var.minio_image
     error_message = "MinIO container should use the specified container image"
   }
 
   assert {
-    condition     = azurerm_container_group.minio_aci_container_group.container[1].image == var.containers.nginx.image
+    condition     = azurerm_container_group.minio_aci_container_group.container[1].image == var.nginx_image
     error_message = "nginx container should use specified nginx image"
   }
 
   assert {
-    condition     = azurerm_container_group.minio_aci_container_group.container[2].image == var.containers.coraza_waf.image
+    condition     = azurerm_container_group.minio_aci_container_group.container[2].image == var.coraza_waf_image
     error_message = "Coraza WAF container should use specified WAF image"
   }
 
@@ -106,11 +107,12 @@ run "nginx_ssl_configuration" {
     location               = "West Europe"
     minio_root_user        = "minioadmin"
     minio_root_password    = "SuperSecret123!"
-    cert_name              = "minio-cert.pfx"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 100
     storage_account_name   = "testminiostorage002"
-    public_url_domain_name = "testminio2"
+    public_url_domain_name = "testminio"
   }
 
   # Test nginx SSL certificates volume
@@ -146,11 +148,12 @@ run "storage_size_validation" {
     location               = "West Europe"
     minio_root_user        = "minioadmin"
     minio_root_password    = "SuperSecret123!"
-    cert_name              = "minio-cert.pfx"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 1000
     storage_account_name   = "testminiostorage003"
-    public_url_domain_name = "testminio3"
+    public_url_domain_name = "testminio"
   }
 
   assert {
@@ -170,11 +173,12 @@ run "invalid_storage_size" {
     location               = "West Europe"
     minio_root_user        = "minioadmin"
     minio_root_password    = "SuperSecret123!"
-    cert_name              = "minio-cert.pfx"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 0
     storage_account_name   = "testminiostorage004"
-    public_url_domain_name = "testminio4"
+    public_url_domain_name = "testminio"
   }
 }
 
@@ -189,11 +193,12 @@ run "invalid_storage_size_too_large" {
     location               = "West Europe"
     minio_root_user        = "minioadmin"
     minio_root_password    = "SuperSecret123!"
-    cert_name              = "minio-cert.pfx"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
     cert_password          = "CertPassword123!"
     storage_share_size     = 6000
     storage_account_name   = "testminiostorage005"
-    public_url_domain_name = "testminio5"
+    public_url_domain_name = "testminio"
   }
 }
 
@@ -205,15 +210,14 @@ run "empty_credentials" {
   ]
 
   variables {
-    resource_group_name = "test-minio-rg"
-    location            = "West Europe"
-    minio_root_user     = ""
-    minio_root_password = ""
-    cert_name           = "minio-cert.pfx"
-    #cert_password          = "CertPassword123!"
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = ""
+    minio_root_password    = ""
+    cert_password          = "CertPassword123!"
     storage_share_size     = 100
     storage_account_name   = "testminiostorage006"
-    public_url_domain_name = "testminio6"
+    public_url_domain_name = "testminio"
   }
 }
 
@@ -228,10 +232,11 @@ run "missing_certificate" {
     location               = "West Europe"
     minio_root_user        = "minioadmin"
     minio_root_password    = "SuperSecret123!"
-    cert_name              = ""
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
     cert_password          = ""
     storage_share_size     = 100
     storage_account_name   = "testminiostorage007"
-    public_url_domain_name = "testminio7"
+    public_url_domain_name = "testminio"
   }
 }
