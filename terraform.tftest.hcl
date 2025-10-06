@@ -235,4 +235,3 @@ run "missing_certificate" {
     public_url_domain_name = "testminio7"
   }
 }
-

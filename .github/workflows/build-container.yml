@@ -5,7 +5,7 @@ on:
     # Build weekly to get latest security updates
     - cron: '0 2 * * 1'
   push:
-    branches: [ main, feature/refactoring ]
+    branches: [ main, feature/* ]
     paths:
       - 'Dockerfile'
       - 'Caddyfile'
@@ -49,7 +49,7 @@ env:
 
 jobs:
   check:
-    name: check
+    name: Container Checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,8 +59,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-nix-shell
 
-      - name: pre-commit hooks
-        run: pre-commit run --all-files --show-diff-on-failure
+      - name: Run container-specific pre-commit hooks
+        run: pre-commit run --files Dockerfile Caddyfile --show-diff-on-failure
 
   build:
     runs-on: ubuntu-latest
@@ -98,7 +98,7 @@ jobs:
       with:
         context: .
         platforms: linux/amd64,linux/arm64
-        push: ${{ github.event.inputs.push_image != 'false' }}
+        push: ${{ github.ref == 'refs/heads/main' || (github.event.inputs.push_image == 'true') }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
@@ -144,3 +144,14 @@ jobs:
 
         docker stop test-coraza
         echo "Container tests completed successfully!"
+
+    - name: Build summary
+      run: |
+        echo "## 🐳 Container Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image:** ${{ fromJSON(steps.meta.outputs.json).tags[0] }}" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "- **Status:** ✅ Built and pushed to registry" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status:** ✅ Built successfully (not pushed - feature branch)" >> $GITHUB_STEP_SUMMARY
+        fi

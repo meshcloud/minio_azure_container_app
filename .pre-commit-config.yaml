@@ -17,7 +17,7 @@ repos:
 
       - id: terraform_tflint
         args:
-          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl # share a single tflint config file for all modules
+          - --args=--config=.tflint.hcl
 
       # tfupdate hooks for aligning terraform and provider versions
       # aligning versions helps build performance becuase there's less providers to download/cache across all our modules
@@ -42,3 +42,11 @@ repos:
     rev: v4.4.0  # Use the ref you want to point at
     hooks:
       - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009', '--ignore', 'DL3018']

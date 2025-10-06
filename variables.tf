@@ -105,7 +105,7 @@ variable "containers" {
       memory_limit = 2.0
     }
     coraza_waf = {
-      image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-ab58e91"
+      image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
       cpu          = "1.0"
       memory       = "1.0"
       cpu_limit    = 1.0
@@ -114,6 +114,3 @@ variable "containers" {
   }
   description = "Container specifications including images, CPU, and memory limits"
 }
-
-
-

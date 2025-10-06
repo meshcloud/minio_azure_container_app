@@ -25,4 +25,3 @@ runs:
         dir=${{ runner.temp }}/.terraform.d/plugin-cache
         mkdir -p $dir # create terraform plugin cache
         echo "TF_PLUGIN_CACHE_DIR=$dir" >> $GITHUB_ENV
-
