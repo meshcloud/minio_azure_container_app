@@ -1,0 +1,52 @@
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.88.4
+    hooks:
+      - id: terraform_docs
+        args:
+            - --args=--config=.terraform-docs.yml
+      - id: terraform_fmt
+      - id: terragrunt_fmt
+      - id: terragrunt_providers_lock
+        stages:
+          - manual # note: this step is very expensive, so you need to invoke it explicitly via `--hook-stage manual`
+        args:
+          - --args=-platform=darwin_arm64
+          - --args=-platform=darwin_amd64
+          - --args=-platform=linux_amd64
+
+      - id: terraform_tflint
+        args:
+          - --args=--config=.tflint.hcl
+
+      # tfupdate hooks for aligning terraform and provider versions
+      # aligning versions helps build performance becuase there's less providers to download/cache across all our modules
+      - id: tfupdate
+        name: tfupdate terraform
+        args:
+          - --args=terraform
+          - --args=--version ">= 1.0"
+
+      - id: tfupdate
+        name: tfupdate hashicorp/azurerm
+        args:
+          - --args=provider hashicorp/azurerm
+          - --args=--version "4.36.0"
+          - --args=--ignore-path "kit/.*/buildingblocks/.*"
+          - --args=--ignore-path "kit/.*/demos/.*"
+          - --args=--ignore-path "kit/azure/meshplatform-au"
+          - --args=--ignore-path "kit/azure/landingzones/au-cloud-native"
+
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0  # Use the ref you want to point at
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009', '--ignore', 'DL3018']

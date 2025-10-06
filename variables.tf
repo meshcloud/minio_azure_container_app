@@ -1,76 +1,111 @@
 variable "resource_group_name" {
-  type    = string
-  description = "Name of the existing Resource Group where you want to deploy the MinIO Storage Bucket"
-}
-variable "location" {
-  type    = string
-}
-variable "container_app_name" {
-  type    = string
-  default = "minio-container-app"
-}
-variable "minio_root_user" {
-  type     = string
-  nullable = false
-}
-variable "minio_root_password" {
-  type      = string
-  sensitive = true
-  nullable  = false
-}
-variable "ingress_allow_ip_address_range" {
   type        = string
-  description = "Provide a list of IP CIDR ranges allowed to access the MinIO service. Use a semicolon (;) to separate multiple entries. Ex. 10.0.0.0/24;10.0.10.0/24;10.0.20.0/24"
+  description = "Name of the Resource Group where you want to deploy MinIO"
+}
+
+variable "location" {
+  default     = "West Europe"
+  type        = string
+  description = "Azure region for deployment"
+}
+
+variable "minio_root_user" {
+  default     = "minioadmin"
+  type        = string
   nullable    = false
+  description = "MinIO root username for admin access"
   validation {
-    condition = can(regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\/(3[0-2]|[12]?[0-9])(;((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\/(3[0-2]|[12]?[0-9]))*$", var.ingress_allow_ip_address_range))
-    error_message = "Incorrect format. Correct example: 10.0.0.0/24;10.0.10.0/24"
+    condition     = length(var.minio_root_user) > 0
+    error_message = "MinIO root user cannot be empty."
   }
 }
-variable "vnet_name" {
+
+variable "minio_root_password" {
   type        = string
-  description = "Name of the existing VNET where the application will run"
+  sensitive   = true
+  nullable    = false
+  description = "MinIO root password for admin access"
+  validation {
+    condition     = length(var.minio_root_password) > 0
+    error_message = "MinIO root password cannot be empty."
+  }
 }
-variable "subnet_cidr_range" {
-  type        = string
-  description = "Subnet CIDR Range that will be created for the Container Application"
-}
-variable "ag_subnet_cidr_range" {
-  type        = string
-  description = "Subnet CIDR Range that will be created for the Application Gateway"
-}
-variable "container_image" {
-  type = string
-  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-  description = "Container Image used for building MinIO App. More recent versions have a limited UI."
-}
-variable "port_ui" {
-  type        = string
-  description = "Port for the UI"
-  default     = "9001"
-}
-variable "port_api" {
-  type        = string
-  description = "Port for the API"
-  default     = "9000"
-}
-variable "cert_name" {
-  type    = string
-}
+
 variable "cert_password" {
-  type      = string
-  sensitive = true
-  nullable  = false
+  type        = string
+  sensitive   = true
+  nullable    = false
+  description = "Password for the SSL certificate"
+  validation {
+    condition     = length(var.cert_password) > 0
+    error_message = "Certificate password cannot be empty."
+  }
 }
+
 variable "storage_share_size" {
-  type = number
-  description = "How much storage space do you need in GBs? Minimun size is 1GB and Maximum is 5120GB (5TB)"
+  default     = 100
+  type        = number
+  description = "Storage space needed in GBs (minimum 1GB, maximum 5120GB/5TB)"
+  validation {
+    condition     = var.storage_share_size >= 1 && var.storage_share_size <= 5120
+    error_message = "Storage share size must be between 1GB and 5120GB (5TB)."
+  }
 }
+
 variable "storage_account_name" {
-  type = string
-  description = "MUST BE GLOBALLY UNIQUE ACROSS AZURE REGION. Suggest using Project Name"
+  type        = string
+  default     = "miniostorage"
+  description = "Storage Account Name prefix (random suffix will be added for global uniqueness)"
+  validation {
+    condition     = can(regex("^[a-z0-9]{3,24}$", var.storage_account_name))
+    error_message = "Storage account name prefix must be 3-24 characters, lowercase letters and numbers only. No special characters or uppercase letters allowed."
+  }
 }
+
+
 variable "public_url_domain_name" {
-  type = string
-  description = "Domain Name to use for the public URL. Example: 'miniotest' would allow you to access MinIO from the URL 'https://miniotest.westeurope.cloudapp.azure.com'"
+  type        = string
+  description = "Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io')"
+}
+
+# Container configurations
+variable "ssl_cert_file" {
+  type        = string
+  default     = "server.crt"
+  description = "Name of the SSL certificate file"
+}
+
+variable "ssl_key_file" {
+  type        = string
+  default     = "server.key"
+  description = "Name of the SSL private key file"
+}
+
+variable "minio_image" {
+  type        = string
+  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+  description = "MinIO container image"
+}
+
+variable "nginx_image" {
+  type        = string
+  default     = "mcr.microsoft.com/azurelinux/base/nginx:1.25"
+  description = "Nginx container image"
+}
+
+variable "coraza_waf_image" {
+  type        = string
+  default     = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
+  description = "Coraza WAF container image"
+}
+
+variable "allowed_ip_addresses" {
+  type        = list(string)
+  description = "List of IP addresses that will be allowed to access the MinIO service (CIDR format, e.g., ['203.0.113.0/32', '192.168.1.0/24'])"
+  validation {
+    condition = alltrue([
+      for ip in var.allowed_ip_addresses : can(cidrhost(ip, 0))
+    ])
+    error_message = "All IP addresses must be in valid CIDR format (e.g., '203.0.113.0/32' for a single IP or '192.168.1.0/24' for a subnet)."
+  }
 }

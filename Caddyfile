@@ -1,0 +1,92 @@
+{
+    # Global options
+    order coraza_waf first
+}
+
+# --- WAF for MinIO UI (port 8080) ---
+:8080 {
+    handle /health {
+        respond "WAF-UI-OK" 200
+    }
+
+    route {
+        coraza_waf {
+            load_owasp_crs
+
+            directives `
+                # Step 1: Initialize TX collection
+                SecAction "id:1,phase:1,pass,nolog,initcol:tx=tx"
+
+                # Step 2: Initialize TX variable
+                SecAction "id:2,phase:1,pass,nolog,setvar:tx.bucket_ops=0"
+
+                # IP allowlist - allow specific IPs
+                SecRule REMOTE_ADDR "@ipMatch {$ALLOWED_IPS}" "id:999,phase:1,pass,nolog,msg:'Allowed IP access'"
+
+                # Block all other IPs (must be after allowlist)
+                SecRule REMOTE_ADDR "@ipMatch 0.0.0.0/0" "id:1000,phase:1,block,status:403,msg:'IP not in allowlist - access denied'"
+
+                # Example rule: Block DELETE on /minio/admin
+                SecRule REQUEST_URI "@beginsWith /minio/admin" "id:1001,phase:1,deny,status:403,msg:'MinIO Admin API Access Blocked'"
+
+                # Rate limiting example
+                SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" "id:1002,phase:1,pass,msg:'Bucket operation',setvar:tx.bucket_ops=+1,expirevar:tx.bucket_ops=60"
+                SecRule TX:bucket_ops "@gt 50" "id:1003,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
+            `
+        }
+
+        reverse_proxy {$MINIO_UI_BACKEND:9001} {
+            health_uri /minio/health/live
+        }
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# --- WAF for MinIO API (port 8081) ---
+:8081 {
+    handle /health {
+        respond "WAF-API-OK" 200
+    }
+
+    route {
+        coraza_waf {
+            load_owasp_crs
+
+            directives `
+                # Step 1: Initialize TX collection
+                SecAction "id:10,phase:1,pass,nolog,initcol:tx=tx"
+
+                # Step 2: Initialize TX variable
+                SecAction "id:11,phase:1,pass,nolog,setvar:tx.bucket_ops=0"
+
+                # IP allowlist - allow specific IPs
+                SecRule REMOTE_ADDR "@ipMatch {$ALLOWED_IPS}" "id:1999,phase:1,pass,nolog,msg:'Allowed IP access'"
+
+                # Block all other IPs (must be after allowlist)
+                SecRule REMOTE_ADDR "@ipMatch 0.0.0.0/0" "id:2000,phase:1,block,status:403,msg:'IP not in allowlist - access denied'"
+
+                # Example rule: Log DELETE operations
+                SecRule REQUEST_METHOD "@streq DELETE" "id:2001,phase:1,log,msg:'DELETE operation logged'"
+
+                # Rate limiting example
+                SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" "id:2002,phase:1,pass,msg:'Bucket operation',setvar:tx.bucket_ops=+1,expirevar:tx.bucket_ops=60"
+                SecRule TX:bucket_ops "@gt 50" "id:2003,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
+            `
+        }
+
+        reverse_proxy {$MINIO_API_BACKEND:9000} {
+            health_uri /minio/health/live
+        }
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}

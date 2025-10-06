@@ -1,0 +1,237 @@
+run "complete_minio_deployment" {
+  command = plan
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 100
+    storage_account_name   = "testminio" # prefix only
+    public_url_domain_name = "testminio"
+  }
+
+  # Test core MinIO container deployment
+  assert {
+    condition     = azurerm_container_group.minio_aci_container_group.name == "minio-aci-container-group"
+    error_message = "MinIO container group should be named 'minio-aci-container-group'"
+  }
+
+  assert {
+    condition     = length(azurerm_container_group.minio_aci_container_group.container) == 3
+    error_message = "Container group should have exactly 3 containers (MinIO, nginx, and Coraza WAF)"
+  }
+
+  assert {
+    condition     = azurerm_container_group.minio_aci_container_group.container[0].image == var.minio_image
+    error_message = "MinIO container should use the specified container image"
+  }
+
+  assert {
+    condition     = azurerm_container_group.minio_aci_container_group.container[1].image == var.nginx_image
+    error_message = "nginx container should use specified nginx image"
+  }
+
+  assert {
+    condition     = azurerm_container_group.minio_aci_container_group.container[2].image == var.coraza_waf_image
+    error_message = "Coraza WAF container should use specified WAF image"
+  }
+
+  # Test exposed ports configuration
+  assert {
+    condition = contains([
+      for port in azurerm_container_group.minio_aci_container_group.exposed_port : port.port
+    ], 443)
+    error_message = "Container group should expose HTTPS port 443"
+  }
+
+  assert {
+    condition = contains([
+      for port in azurerm_container_group.minio_aci_container_group.exposed_port : port.port
+    ], 80)
+    error_message = "Container group should expose HTTP port 80"
+  }
+
+  assert {
+    condition = contains([
+      for port in azurerm_container_group.minio_aci_container_group.exposed_port : port.port
+    ], 8443)
+    error_message = "Container group should expose MinIO API port 8443"
+  }
+
+  # Test storage configuration (prefix + random suffix handled in resource)
+  assert {
+    condition     = azurerm_storage_share.minio_storage_share.quota == var.storage_share_size
+    error_message = "Storage share should use the specified size"
+  }
+
+  assert {
+    condition     = azurerm_storage_account.minio_storage_account.account_tier == "Standard"
+    error_message = "Storage account should use Standard tier"
+  }
+
+  assert {
+    condition     = azurerm_storage_account.minio_storage_account.account_replication_type == "LRS"
+    error_message = "Storage account should use LRS replication"
+  }
+
+  # Test MinIO volume mount
+  assert {
+    condition = length([
+      for vol in azurerm_container_group.minio_aci_container_group.container[0].volume : vol
+      if vol.name == "minio-volume"
+    ]) == 1
+    error_message = "MinIO container should have storage volume mounted"
+  }
+
+  # Test Log Analytics workspace
+  assert {
+    condition     = length(azurerm_log_analytics_workspace.minio_law) > 0
+    error_message = "Log Analytics workspace should be created"
+  }
+}
+
+run "nginx_ssl_configuration" {
+  command = plan
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 100
+    storage_account_name   = "testminio002"
+    public_url_domain_name = "testminio"
+  }
+
+  # Test nginx SSL certificates volume
+  assert {
+    condition = length([
+      for vol in azurerm_container_group.minio_aci_container_group.container[1].volume : vol
+      if vol.name == "ssl-certs"
+    ]) == 1
+    error_message = "nginx should have SSL certificates volume mounted"
+  }
+
+  # Test nginx configuration volume
+  assert {
+    condition = length([
+      for vol in azurerm_container_group.minio_aci_container_group.container[1].volume : vol
+      if vol.name == "nginx-config"
+    ]) == 1
+    error_message = "nginx should have configuration volume mounted"
+  }
+
+  # Test nginx template configuration (backend URLs are configured via template, not env vars)
+  assert {
+    condition     = length(azurerm_container_group.minio_aci_container_group.container[1].volume) >= 2
+    error_message = "nginx should have both config and SSL volumes mounted"
+  }
+}
+
+run "storage_size_validation" {
+  command = plan
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 1000
+    storage_account_name   = "testminio003"
+    public_url_domain_name = "testminio"
+  }
+
+  assert {
+    condition     = azurerm_storage_share.minio_storage_share.quota == 1000
+    error_message = "Storage share should accept large sizes up to 5TB"
+  }
+}
+
+run "invalid_storage_size" {
+  command = plan
+  expect_failures = [
+    var.storage_share_size,
+  ]
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 0
+    storage_account_name   = "testminio004"
+    public_url_domain_name = "testminio"
+  }
+}
+
+run "invalid_storage_size_too_large" {
+  command = plan
+  expect_failures = [
+    var.storage_share_size,
+  ]
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 6000
+    storage_account_name   = "testminio005"
+    public_url_domain_name = "testminio"
+  }
+}
+
+run "empty_credentials" {
+  command = plan
+  expect_failures = [
+    var.minio_root_user,
+    var.minio_root_password,
+  ]
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = ""
+    minio_root_password    = ""
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 100
+    storage_account_name   = "testminio006"
+    public_url_domain_name = "testminio"
+  }
+}
+
+run "missing_certificate" {
+  command = plan
+  expect_failures = [
+    var.cert_password,
+  ]
+
+  variables {
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    ssl_cert_file          = "server-tftest.crt"
+    ssl_key_file           = "server-tftest.key"
+    cert_password          = ""
+    storage_share_size     = 100
+    storage_account_name   = "testminio007"
+    public_url_domain_name = "testminio"
+  }
+}
