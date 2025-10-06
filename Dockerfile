@@ -5,19 +5,18 @@ ARG CADDY_VERSION=2.8
 ARG CORAZA_VERSION=v2.0.0
 
 # --- Build stage ---
-FROM caddy:2.8-builder AS builder
+FROM caddy:${CADDY_VERSION}-builder AS builder
+ARG CORAZA_VERSION
+ENV CORAZA_VERSION=${CORAZA_VERSION}
 
-# Redeclare ARGs inside this stage so RUN can see them
-ARG CORAZA_VERSION=v2.0.0
-
-# Build Caddy with Coraza WAF plugin
 RUN xcaddy build \
-    --with github.com/corazawaf/coraza-caddy@v2.0.0
+    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
 
 # --- Runtime stage ---
-FROM caddy:2.8-alpine
+FROM caddy:${CADDY_VERSION}-alpine
+ARG CORAZA_VERSION
+ENV CORAZA_VERSION=${CORAZA_VERSION}
 
-# Copy the custom Caddy binary with Coraza
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 
 # Create non-root user for security

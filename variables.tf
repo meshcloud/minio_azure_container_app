@@ -12,6 +12,10 @@ variable "minio_root_user" {
   type        = string
   nullable    = false
   description = "MinIO root username for admin access"
+  validation {
+    condition     = length(var.minio_root_user) > 0
+    error_message = "MinIO root user cannot be empty."
+  }
 }
 
 variable "minio_root_password" {
@@ -19,12 +23,10 @@ variable "minio_root_password" {
   sensitive   = true
   nullable    = false
   description = "MinIO root password for admin access"
-}
-
-variable "container_image" {
-  type        = string
-  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-  description = "MinIO container image. More recent versions have a limited UI."
+  validation {
+    condition     = length(var.minio_root_password) > 0
+    error_message = "MinIO root password cannot be empty."
+  }
 }
 
 variable "cert_name" {
@@ -37,6 +39,10 @@ variable "cert_password" {
   sensitive   = true
   nullable    = false
   description = "Password for the SSL certificate"
+  validation {
+    condition     = length(var.cert_password) > 0
+    error_message = "Certificate password cannot be empty."
+  }
 }
 
 variable "storage_share_size" {
@@ -58,45 +64,55 @@ variable "public_url_domain_name" {
   description = "Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io')"
 }
 
-# Resource governance variables
-variable "minio_cpu_limit" {
-  type        = number
-  default     = 1.0
-  description = "Maximum CPU cores for MinIO container (prevents runaway consumption)"
-  validation {
-    condition     = var.minio_cpu_limit >= 0.1 && var.minio_cpu_limit <= 4.0
-    error_message = "MinIO CPU limit must be between 0.1 and 4.0 cores."
+# Container configurations
+variable "containers" {
+  type = object({
+    minio = object({
+      image        = string
+      cpu          = string
+      memory       = string
+      cpu_limit    = number
+      memory_limit = number
+    })
+    nginx = object({
+      image        = string
+      cpu          = string
+      memory       = string
+      cpu_limit    = number
+      memory_limit = number
+    })
+    coraza_waf = object({
+      image        = string
+      cpu          = string
+      memory       = string
+      cpu_limit    = number
+      memory_limit = number
+    })
+  })
+  default = {
+    minio = {
+      image        = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+      cpu          = "0.5"
+      memory       = "1.5"
+      cpu_limit    = 1.0
+      memory_limit = 2.0
+    }
+    nginx = {
+      image        = "mcr.microsoft.com/azurelinux/base/nginx:1.25"
+      cpu          = "0.5"
+      memory       = "1.0"
+      cpu_limit    = 1.0
+      memory_limit = 2.0
+    }
+    coraza_waf = {
+      image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-ab58e91"
+      cpu          = "1.0"
+      memory       = "1.0"
+      cpu_limit    = 1.0
+      memory_limit = 2.0
+    }
   }
-}
-
-variable "minio_memory_limit" {
-  type        = number
-  default     = 2.0
-  description = "Maximum memory in GB for MinIO container"
-  validation {
-    condition     = var.minio_memory_limit >= 0.5 && var.minio_memory_limit <= 8.0
-    error_message = "MinIO memory limit must be between 0.5GB and 8.0GB."
-  }
-}
-
-variable "waf_cpu_limit" {
-  type        = number
-  default     = 1.0
-  description = "Maximum CPU cores for WAF container"
-  validation {
-    condition     = var.waf_cpu_limit >= 0.1 && var.waf_cpu_limit <= 2.0
-    error_message = "WAF CPU limit must be between 0.1 and 2.0 cores."
-  }
-}
-
-variable "waf_memory_limit" {
-  type        = number
-  default     = 2.0
-  description = "Maximum memory in GB for WAF container"
-  validation {
-    condition     = var.waf_memory_limit >= 0.5 && var.waf_memory_limit <= 4.0
-    error_message = "WAF memory limit must be between 0.5GB and 4.0GB."
-  }
+  description = "Container specifications including images, CPU, and memory limits"
 }
 
 

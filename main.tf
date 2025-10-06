@@ -39,13 +39,13 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
   container {
     name   = "minio"
-    image  = var.container_image
-    cpu    = "0.5"
-    memory = "1.5"
+    image  = var.containers.minio.image
+    cpu    = var.containers.minio.cpu
+    memory = var.containers.minio.memory
 
     # Resource limits to prevent runaway consumption
-    cpu_limit    = var.minio_cpu_limit
-    memory_limit = var.minio_memory_limit
+    cpu_limit    = var.containers.minio.cpu_limit
+    memory_limit = var.containers.minio.memory_limit
 
     ports {
       port     = 9001
@@ -91,13 +91,13 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
   container {
     name   = "nginx"
-    image  = "mcr.microsoft.com/azurelinux/base/nginx:1.25"
-    cpu    = "0.5"
-    memory = "1.0"
+    image  = var.containers.nginx.image
+    cpu    = var.containers.nginx.cpu
+    memory = var.containers.nginx.memory
 
     # Resource limits to prevent runaway consumption
-    cpu_limit    = var.waf_cpu_limit
-    memory_limit = var.waf_memory_limit
+    cpu_limit    = var.containers.nginx.cpu_limit
+    memory_limit = var.containers.nginx.memory_limit
 
     ports {
       port     = 80
@@ -144,11 +144,11 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
   container {
     name         = "coraza-waf"
-    image        = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-ab58e91"
-    cpu          = "1.0"
-    memory       = "1.0"
-    cpu_limit    = var.waf_cpu_limit
-    memory_limit = var.waf_memory_limit
+    image        = var.containers.coraza_waf.image
+    cpu          = var.containers.coraza_waf.cpu
+    memory       = var.containers.coraza_waf.memory
+    cpu_limit    = var.containers.coraza_waf.cpu_limit
+    memory_limit = var.containers.coraza_waf.memory_limit
 
     ports {
       port     = 8080 # WAF endpoint for MinIO UI

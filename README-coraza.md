@@ -7,7 +7,7 @@ A modern Web Application Firewall built with [Coraza](https://coraza.io) and [Ca
 - ✅ **OWASP Core Rule Set v4** - Latest security rules
 - ✅ **Multi-backend routing** - Single WAF protects MinIO UI + API
 - ✅ **Automatic HTTPS** - TLS termination included
-- ✅ **Security headers** - Production-ready security configuration  
+- ✅ **Security headers** - Production-ready security configuration
 - ✅ **Health checks** - Built-in monitoring endpoints
 - ✅ **Rate limiting** - API protection against abuse
 - ✅ **Audit logging** - JSON-formatted security logs
@@ -52,7 +52,7 @@ Internet → Caddy WAF (8443) → MinIO UI (9001)
 ### Request Routing
 
 - **`/`** → MinIO Console (UI)
-- **`/api/*`** → MinIO S3 API  
+- **`/api/*`** → MinIO S3 API
 - **`/s3/*`** → MinIO S3 API (direct bucket access)
 - **`/health`** → Health check endpoint
 
@@ -60,7 +60,7 @@ Internet → Caddy WAF (8443) → MinIO UI (9001)
 
 ### WAF Protection
 - SQL injection prevention
-- XSS protection  
+- XSS protection
 - Command injection blocking
 - Path traversal prevention
 - Rate limiting (100 req/min per IP for API endpoints)
@@ -86,7 +86,7 @@ This container is designed for Azure Container Apps deployment:
 env:
   - name: MINIO_UI_BACKEND
     value: "localhost:9001"
-  - name: MINIO_API_BACKEND  
+  - name: MINIO_API_BACKEND
     value: "localhost:9000"
 ```
 

@@ -162,3 +162,51 @@ aws s3 ls --endpoint-url https://your-domain.region.azurecontainer.io:8443 --no-
 * **Certificate-based Authentication**: Uses SSL certificates for secure connections
 * **Internal Communication**: Containers communicate via localhost within the container group
 * **Audit Logging**: All WAF actions logged for security monitoring
+
+<!-- BEGIN_TF_DOCS -->
+## Requirements
+
+| Name | Version |
+|------|---------|
+| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | 4.36.0 |
+
+## Modules
+
+No modules.
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [azurerm_container_group.minio_aci_container_group](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/container_group) | resource |
+| [azurerm_log_analytics_workspace.minio_law](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/log_analytics_workspace) | resource |
+| [azurerm_resource_group.minio_aci_rg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/resource_group) | resource |
+| [azurerm_storage_account.minio_storage_account](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_account) | resource |
+| [azurerm_storage_share.minio_storage_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_cert_name"></a> [cert\_name](#input\_cert\_name) | Name of the SSL certificate file (e.g., minio-cert.pfx) | `string` | n/a | yes |
+| <a name="input_cert_password"></a> [cert\_password](#input\_cert\_password) | Password for the SSL certificate | `string` | n/a | yes |
+| <a name="input_containers"></a> [containers](#input\_containers) | Container specifications including images, CPU, and memory limits | <pre>object({<br>    minio = object({<br>      image        = string<br>      cpu          = string<br>      memory       = string<br>      cpu_limit    = number<br>      memory_limit = number<br>    })<br>    nginx = object({<br>      image        = string<br>      cpu          = string<br>      memory       = string<br>      cpu_limit    = number<br>      memory_limit = number<br>    })<br>    coraza_waf = object({<br>      image        = string<br>      cpu          = string<br>      memory       = string<br>      cpu_limit    = number<br>      memory_limit = number<br>    })<br>  })</pre> | <pre>{<br>  "coraza_waf": {<br>    "cpu": "1.0",<br>    "cpu_limit": 1,<br>    "image": "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:feature-refactoring-341f2aa",<br>    "memory": "1.0",<br>    "memory_limit": 2<br>  },<br>  "minio": {<br>    "cpu": "0.5",<br>    "cpu_limit": 1,<br>    "image": "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z",<br>    "memory": "1.5",<br>    "memory_limit": 2<br>  },<br>  "nginx": {<br>    "cpu": "0.5",<br>    "cpu_limit": 1,<br>    "image": "mcr.microsoft.com/azurelinux/base/nginx:1.25",<br>    "memory": "1.0",<br>    "memory_limit": 2<br>  }<br>}</pre> | no |
+| <a name="input_location"></a> [location](#input\_location) | Azure region for deployment | `string` | n/a | yes |
+| <a name="input_minio_root_password"></a> [minio\_root\_password](#input\_minio\_root\_password) | MinIO root password for admin access | `string` | n/a | yes |
+| <a name="input_minio_root_user"></a> [minio\_root\_user](#input\_minio\_root\_user) | MinIO root username for admin access | `string` | n/a | yes |
+| <a name="input_public_url_domain_name"></a> [public\_url\_domain\_name](#input\_public\_url\_domain\_name) | Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io') | `string` | n/a | yes |
+| <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Name of the Resource Group where you want to deploy MinIO | `string` | n/a | yes |
+| <a name="input_storage_account_name"></a> [storage\_account\_name](#input\_storage\_account\_name) | Storage Account Name (must be globally unique across Azure) | `string` | n/a | yes |
+| <a name="input_storage_share_size"></a> [storage\_share\_size](#input\_storage\_share\_size) | Storage space needed in GBs (minimum 1GB, maximum 5120GB/5TB) | `number` | n/a | yes |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_console_url"></a> [console\_url](#output\_console\_url) | MinIO Web Console URL |
+| <a name="output_fqdn"></a> [fqdn](#output\_fqdn) | Fully qualified domain name |
+| <a name="output_mc_alias_command"></a> [mc\_alias\_command](#output\_mc\_alias\_command) | MinIO client setup command |
+| <a name="output_public_ip"></a> [public\_ip](#output\_public\_ip) | Public IP address |
+| <a name="output_s3_api_url"></a> [s3\_api\_url](#output\_s3\_api\_url) | MinIO S3 API endpoint |
+| <a name="output_storage_account_name"></a> [storage\_account\_name](#output\_storage\_account\_name) | Azure Storage Account name |
+<!-- END_TF_DOCS -->

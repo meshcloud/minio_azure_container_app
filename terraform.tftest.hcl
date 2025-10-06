@@ -2,17 +2,15 @@ run "complete_minio_deployment" {
   command = plan
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = "minioadmin"
-    minio_root_password      = "SuperSecret123!"
-    container_image          = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-    cert_name               = "minio-cert.pfx"
-    cert_password           = "CertPassword123!"
-    storage_share_size      = 100
-    storage_account_name    = "testminiostorage001"
-    public_url_domain_name  = "testminio"
-
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    cert_name              = "minio-cert.pfx"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 100
+    storage_account_name   = "testminiostorage001"
+    public_url_domain_name = "testminio"
   }
 
   # Test core MinIO container deployment
@@ -22,18 +20,23 @@ run "complete_minio_deployment" {
   }
 
   assert {
-    condition     = length(azurerm_container_group.minio_aci_container_group.container) == 2
-    error_message = "Container group should have exactly 2 containers (MinIO and nginx)"
+    condition     = length(azurerm_container_group.minio_aci_container_group.container) == 3
+    error_message = "Container group should have exactly 3 containers (MinIO, nginx, and Coraza WAF)"
   }
 
   assert {
-    condition     = azurerm_container_group.minio_aci_container_group.container[0].image == var.container_image
+    condition     = azurerm_container_group.minio_aci_container_group.container[0].image == var.containers.minio.image
     error_message = "MinIO container should use the specified container image"
   }
 
   assert {
-    condition     = azurerm_container_group.minio_aci_container_group.container[1].image == "mcr.microsoft.com/azurelinux/base/nginx:1.25"
-    error_message = "nginx container should use Azure Linux nginx image"
+    condition     = azurerm_container_group.minio_aci_container_group.container[1].image == var.containers.nginx.image
+    error_message = "nginx container should use specified nginx image"
+  }
+
+  assert {
+    condition     = azurerm_container_group.minio_aci_container_group.container[2].image == var.containers.coraza_waf.image
+    error_message = "Coraza WAF container should use specified WAF image"
   }
 
   # Test exposed ports configuration
@@ -54,8 +57,8 @@ run "complete_minio_deployment" {
   assert {
     condition = contains([
       for port in azurerm_container_group.minio_aci_container_group.exposed_port : port.port
-    ], 9443)
-    error_message = "Container group should expose MinIO API port 9443"
+    ], 8443)
+    error_message = "Container group should expose MinIO API port 8443"
   }
 
   # Test storage configuration
@@ -99,15 +102,15 @@ run "nginx_ssl_configuration" {
   command = plan
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = "minioadmin"
-    minio_root_password      = "SuperSecret123!"
-    cert_name               = "minio-cert.pfx"
-    cert_password           = "CertPassword123!"
-    storage_share_size      = 100
-    storage_account_name    = "testminiostorage002"
-    public_url_domain_name  = "testminio2"
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    cert_name              = "minio-cert.pfx"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 100
+    storage_account_name   = "testminiostorage002"
+    public_url_domain_name = "testminio2"
   }
 
   # Test nginx SSL certificates volume
@@ -128,15 +131,10 @@ run "nginx_ssl_configuration" {
     error_message = "nginx should have configuration volume mounted"
   }
 
-  # Test nginx environment variables
+  # Test nginx template configuration (backend URLs are configured via template, not env vars)
   assert {
-    condition = contains(keys(azurerm_container_group.minio_aci_container_group.container[1].environment_variables), "MINIO_BACKEND_UI")
-    error_message = "nginx should have MinIO UI backend environment variable"
-  }
-
-  assert {
-    condition = contains(keys(azurerm_container_group.minio_aci_container_group.container[1].environment_variables), "MINIO_BACKEND_API")
-    error_message = "nginx should have MinIO API backend environment variable"
+    condition     = length(azurerm_container_group.minio_aci_container_group.container[1].volume) >= 2
+    error_message = "nginx should have both config and SSL volumes mounted"
   }
 }
 
@@ -144,15 +142,15 @@ run "storage_size_validation" {
   command = plan
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = "minioadmin"
-    minio_root_password      = "SuperSecret123!"
-    cert_name               = "minio-cert.pfx"
-    cert_password           = "CertPassword123!"
-    storage_share_size      = 1000
-    storage_account_name    = "testminiostorage003"
-    public_url_domain_name  = "testminio3"
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    cert_name              = "minio-cert.pfx"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 1000
+    storage_account_name   = "testminiostorage003"
+    public_url_domain_name = "testminio3"
   }
 
   assert {
@@ -168,15 +166,15 @@ run "invalid_storage_size" {
   ]
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = "minioadmin"
-    minio_root_password      = "SuperSecret123!"
-    cert_name               = "minio-cert.pfx"
-    cert_password           = "CertPassword123!"
-    storage_share_size      = 0
-    storage_account_name    = "testminiostorage004"
-    public_url_domain_name  = "testminio4"
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    cert_name              = "minio-cert.pfx"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 0
+    storage_account_name   = "testminiostorage004"
+    public_url_domain_name = "testminio4"
   }
 }
 
@@ -187,15 +185,15 @@ run "invalid_storage_size_too_large" {
   ]
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = "minioadmin"
-    minio_root_password      = "SuperSecret123!"
-    cert_name               = "minio-cert.pfx"
-    cert_password           = "CertPassword123!"
-    storage_share_size      = 6000
-    storage_account_name    = "testminiostorage005"
-    public_url_domain_name  = "testminio5"
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    cert_name              = "minio-cert.pfx"
+    cert_password          = "CertPassword123!"
+    storage_share_size     = 6000
+    storage_account_name   = "testminiostorage005"
+    public_url_domain_name = "testminio5"
   }
 }
 
@@ -207,15 +205,15 @@ run "empty_credentials" {
   ]
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = ""
-    minio_root_password      = ""
-    cert_name               = "minio-cert.pfx"
-    cert_password           = "CertPassword123!"
-    storage_share_size      = 100
-    storage_account_name    = "testminiostorage006"
-    public_url_domain_name  = "testminio6"
+    resource_group_name = "test-minio-rg"
+    location            = "West Europe"
+    minio_root_user     = ""
+    minio_root_password = ""
+    cert_name           = "minio-cert.pfx"
+    #cert_password          = "CertPassword123!"
+    storage_share_size     = 100
+    storage_account_name   = "testminiostorage006"
+    public_url_domain_name = "testminio6"
   }
 }
 
@@ -226,15 +224,15 @@ run "missing_certificate" {
   ]
 
   variables {
-    resource_group_name        = "test-minio-rg"
-    location                  = "West Europe"
-    minio_root_user          = "minioadmin"
-    minio_root_password      = "SuperSecret123!"
-    cert_name               = "minio-cert.pfx"
-    cert_password           = ""
-    storage_share_size      = 100
-    storage_account_name    = "testminiostorage007"
-    public_url_domain_name  = "testminio7"
+    resource_group_name    = "test-minio-rg"
+    location               = "West Europe"
+    minio_root_user        = "minioadmin"
+    minio_root_password    = "SuperSecret123!"
+    cert_name              = ""
+    cert_password          = ""
+    storage_share_size     = 100
+    storage_account_name   = "testminiostorage007"
+    public_url_domain_name = "testminio7"
   }
 }
 
