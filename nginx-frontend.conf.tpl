@@ -25,12 +25,6 @@ server {
     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
 
-    # IP restrictions - only allow specified IP addresses
-%{ for ip in allowed_ips ~}
-    allow ${ip};
-%{ endfor ~}
-    deny all;
-
     client_max_body_size 1000m;
 
     # MinIO Console (UI) via Coraza WAF
@@ -70,12 +64,6 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
     ssl_prefer_server_ciphers off;
-
-    # IP restrictions - only allow specified IP addresses
-%{ for ip in allowed_ips ~}
-    allow ${ip};
-%{ endfor ~}
-    deny all;
 
     client_max_body_size 1000m;
 
