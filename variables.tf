@@ -31,17 +31,6 @@ variable "minio_root_password" {
   }
 }
 
-variable "cert_password" {
-  type        = string
-  sensitive   = true
-  nullable    = false
-  description = "Password for the SSL certificate"
-  validation {
-    condition     = length(var.cert_password) > 0
-    error_message = "Certificate password cannot be empty."
-  }
-}
-
 variable "storage_share_size" {
   default     = 100
   type        = number
@@ -68,22 +57,9 @@ variable "public_url_domain_name" {
   description = "Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io')"
 }
 
-# Container configurations
-variable "ssl_cert_file" {
-  type        = string
-  default     = "server.crt"
-  description = "Name of the SSL certificate file"
-}
-
-variable "ssl_key_file" {
-  type        = string
-  default     = "server.key"
-  description = "Name of the SSL private key file"
-}
-
 variable "minio_image" {
   type        = string
-  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+  default     = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
   description = "MinIO container image"
 }
 
@@ -97,4 +73,15 @@ variable "coraza_waf_image" {
   type        = string
   default     = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
   description = "Coraza WAF container image"
+}
+
+variable "allowed_ip_addresses" {
+  type        = list(string)
+  description = "List of IP addresses that will be allowed to access the MinIO service (CIDR format, e.g., ['203.0.113.0/32', '192.168.1.0/24'])"
+  validation {
+    condition = alltrue([
+      for ip in var.allowed_ip_addresses : can(cidrhost(ip, 0))
+    ])
+    error_message = "All IP addresses must be in valid CIDR format (e.g., '203.0.113.0/32' for a single IP or '192.168.1.0/24' for a subnet)."
+  }
 }

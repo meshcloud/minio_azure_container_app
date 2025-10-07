@@ -20,17 +20,23 @@
                 # Step 2: Initialize TX variable
                 SecAction "id:2,phase:1,pass,nolog,setvar:tx.bucket_ops=0"
 
-                # Example rule: Block DELETE on /minio/admin
-                SecRule REQUEST_URI "@beginsWith /minio/admin" "id:1001,phase:1,deny,status:403,msg:'MinIO Admin API Access Blocked'"
+                # Allow WebSocket connections for MinIO console
+                #SecRule REQUEST_URI "@beginsWith /ws/" "id:1000,phase:1,pass,msg:'Allow WebSocket connections'"
+                SecRule REQUEST_HEADERS:Upgrade "@streq websocket" "id:1001,phase:1,pass,msg:'Allow WebSocket upgrade requests'"
+
+                # Example rule: Block DELETE on /minio/admin (except WebSocket connections)
+                SecRule REQUEST_URI "@beginsWith /minio/admin" "id:1002,phase:1,deny,status:403,msg:'MinIO Admin API Access Blocked',chain"
+                SecRule REQUEST_HEADERS:Upgrade "!@streq websocket"
 
                 # Rate limiting example
-                SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" "id:1002,phase:1,pass,msg:'Bucket operation',setvar:tx.bucket_ops=+1,expirevar:tx.bucket_ops=60"
-                SecRule TX:bucket_ops "@gt 50" "id:1003,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
+                SecRule REQUEST_METHOD "@rx ^(PUT|POST|DELETE)$" "id:1003,phase:1,pass,msg:'Bucket operation',setvar:tx.bucket_ops=+1,expirevar:tx.bucket_ops=60"
+                SecRule TX:bucket_ops "@gt 50" "id:1004,phase:1,deny,status:429,msg:'Bucket operation rate limit exceeded'"
             `
         }
 
-        reverse_proxy {$MINIO_UI_BACKEND:9001} {
-            health_uri /minio/health/live
+        reverse_proxy localhost:9001 {
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection {http.request.header.Connection}
         }
     }
 
@@ -43,6 +49,7 @@
 
 # --- WAF for MinIO API (port 8081) ---
 :8081 {
+    # Health check must come before WAF to avoid being blocked
     handle /health {
         respond "WAF-API-OK" 200
     }
@@ -67,8 +74,9 @@
             `
         }
 
-        reverse_proxy {$MINIO_API_BACKEND:9000} {
-            health_uri /minio/health/live
+        reverse_proxy localhost:9000 {
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection {http.request.header.Connection}
         }
     }
 
