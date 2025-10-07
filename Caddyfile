@@ -29,7 +29,7 @@
             `
         }
 
-        reverse_proxy {$MINIO_UI_BACKEND} {
+        reverse_proxy localhost:9001 {
             header_up Upgrade {http.request.header.Upgrade}
             header_up Connection {http.request.header.Connection}
         }
@@ -68,7 +68,7 @@
             `
         }
 
-        reverse_proxy {$MINIO_API_BACKEND} {
+        reverse_proxy localhost:9001 {
             header_up Upgrade {http.request.header.Upgrade}
             header_up Connection {http.request.header.Connection}
         }
