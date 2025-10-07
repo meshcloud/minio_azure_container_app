@@ -1,21 +1,21 @@
 output "console_url" {
   description = "MinIO Web Console URL"
-  value       = "https://${azurerm_container_group.minio_aci_container_group.fqdn}"
+  value       = "https://${azurerm_public_ip.agw_pip.fqdn}"
 }
 
 output "s3_api_url" {
   description = "MinIO S3 API endpoint"
-  value       = "https://${azurerm_container_group.minio_aci_container_group.fqdn}:8443"
+  value       = "https://${azurerm_public_ip.agw_pip.fqdn}:8443"
 }
 
 output "fqdn" {
   description = "Fully qualified domain name"
-  value       = azurerm_container_group.minio_aci_container_group.fqdn
+  value       = azurerm_public_ip.agw_pip.fqdn
 }
 
 output "public_ip" {
   description = "Public IP address"
-  value       = azurerm_container_group.minio_aci_container_group.ip_address
+  value       = azurerm_public_ip.agw_pip.ip_address
 }
 
 output "mc_alias_command" {

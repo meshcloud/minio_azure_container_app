@@ -29,8 +29,9 @@
             `
         }
 
-        reverse_proxy {$MINIO_UI_BACKEND:9001} {
-            health_uri /minio/health/live
+        reverse_proxy {$MINIO_UI_BACKEND} {
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection {http.request.header.Connection}
         }
     }
 
@@ -67,8 +68,9 @@
             `
         }
 
-        reverse_proxy {$MINIO_API_BACKEND:9000} {
-            health_uri /minio/health/live
+        reverse_proxy {$MINIO_API_BACKEND} {
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection {http.request.header.Connection}
         }
     }
 

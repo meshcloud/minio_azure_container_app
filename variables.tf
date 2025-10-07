@@ -83,7 +83,7 @@ variable "ssl_key_file" {
 
 variable "minio_image" {
   type        = string
-  default     = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+  default     = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
   description = "MinIO container image"
 }
 
@@ -97,4 +97,15 @@ variable "coraza_waf_image" {
   type        = string
   default     = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
   description = "Coraza WAF container image"
+}
+
+variable "allowed_ip_addresses" {
+  type        = list(string)
+  description = "List of IP addresses that will be allowed to access the MinIO service (CIDR format, e.g., ['203.0.113.0/32', '192.168.1.0/24'])"
+  validation {
+    condition = alltrue([
+      for ip in var.allowed_ip_addresses : can(cidrhost(ip, 0))
+    ])
+    error_message = "All IP addresses must be in valid CIDR format (e.g., '203.0.113.0/32' for a single IP or '192.168.1.0/24' for a subnet)."
+  }
 }
