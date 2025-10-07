@@ -169,7 +169,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     environment_variables = {
       MINIO_UI_BACKEND           = "localhost:9001"
       MINIO_API_BACKEND          = "localhost:9000"
-      MINIO_BROWSER_REDIRECT_URL = "localhost:9001"
+      MINIO_BROWSER_REDIRECT_URL = "http://localhost:9001"
     }
 
     liveness_probe {
