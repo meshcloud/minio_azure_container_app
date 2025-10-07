@@ -179,21 +179,33 @@ No modules.
 
 | Name | Type |
 |------|------|
+| [azurerm_application_gateway.minio_agw](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/application_gateway) | resource |
 | [azurerm_container_group.minio_aci_container_group](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/container_group) | resource |
+| [azurerm_key_vault.minio_kv](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault) | resource |
+| [azurerm_key_vault_access_policy.agw_policy](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
+| [azurerm_key_vault_access_policy.tf](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
+| [azurerm_key_vault_certificate.minio_cert](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_certificate) | resource |
 | [azurerm_log_analytics_workspace.minio_law](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/log_analytics_workspace) | resource |
-| [azurerm_resource_group.minio_aci_rg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/resource_group) | resource |
+| [azurerm_public_ip.agw_pip](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/public_ip) | resource |
+| [azurerm_resource_group.minio_rg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/resource_group) | resource |
 | [azurerm_storage_account.minio_storage_account](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_account) | resource |
-| [azurerm_storage_share.minio_storage_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
+| [azurerm_storage_share.minio_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
+| [azurerm_subnet.aci_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/subnet) | resource |
+| [azurerm_subnet.agw_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/subnet) | resource |
+| [azurerm_user_assigned_identity.agw_identity](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/user_assigned_identity) | resource |
+| [azurerm_virtual_network.minio_vnet](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/virtual_network) | resource |
 | [random_string.storage_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
+| [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/data-sources/client_config) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_allowed_ip_addresses"></a> [allowed\_ip\_addresses](#input\_allowed\_ip\_addresses) | List of IP addresses that will be allowed to access the MinIO service (CIDR format, e.g., ['203.0.113.0/32', '192.168.1.0/24']) | `list(string)` | n/a | yes |
 | <a name="input_cert_password"></a> [cert\_password](#input\_cert\_password) | Password for the SSL certificate | `string` | n/a | yes |
 | <a name="input_coraza_waf_image"></a> [coraza\_waf\_image](#input\_coraza\_waf\_image) | Coraza WAF container image | `string` | `"ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure region for deployment | `string` | `"West Europe"` | no |
-| <a name="input_minio_image"></a> [minio\_image](#input\_minio\_image) | MinIO container image | `string` | `"quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"` | no |
+| <a name="input_minio_image"></a> [minio\_image](#input\_minio\_image) | MinIO container image | `string` | `"quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"` | no |
 | <a name="input_minio_root_password"></a> [minio\_root\_password](#input\_minio\_root\_password) | MinIO root password for admin access | `string` | n/a | yes |
 | <a name="input_minio_root_user"></a> [minio\_root\_user](#input\_minio\_root\_user) | MinIO root username for admin access | `string` | `"minioadmin"` | no |
 | <a name="input_nginx_image"></a> [nginx\_image](#input\_nginx\_image) | Nginx container image | `string` | `"mcr.microsoft.com/azurelinux/base/nginx:1.25"` | no |
