@@ -31,17 +31,6 @@ variable "minio_root_password" {
   }
 }
 
-variable "cert_password" {
-  type        = string
-  sensitive   = true
-  nullable    = false
-  description = "Password for the SSL certificate"
-  validation {
-    condition     = length(var.cert_password) > 0
-    error_message = "Certificate password cannot be empty."
-  }
-}
-
 variable "storage_share_size" {
   default     = 100
   type        = number
@@ -66,19 +55,6 @@ variable "storage_account_name" {
 variable "public_url_domain_name" {
   type        = string
   description = "Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io')"
-}
-
-# Container configurations
-variable "ssl_cert_file" {
-  type        = string
-  default     = "server.crt"
-  description = "Name of the SSL certificate file"
-}
-
-variable "ssl_key_file" {
-  type        = string
-  default     = "server.key"
-  description = "Name of the SSL private key file"
 }
 
 variable "minio_image" {

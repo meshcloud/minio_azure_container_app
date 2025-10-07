@@ -28,7 +28,7 @@ RUN mkdir -p /etc/caddy /var/lib/caddy /var/log/caddy && \
     chown -R caddy:caddy /etc/caddy /var/lib/caddy /var/log/caddy
 
 # Copy Caddyfile template
-# COPY Caddyfile /etc/caddy/Caddyfile
+COPY Caddyfile /etc/caddy/Caddyfile
 
 # Install curl for health checks
 RUN apk add --no-cache curl

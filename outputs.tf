@@ -20,7 +20,7 @@ output "public_ip" {
 
 output "mc_alias_command" {
   description = "MinIO client setup command"
-  value       = "mc alias set myminio https://${azurerm_container_group.minio_aci_container_group.fqdn}:8443 --insecure"
+  value       = "mc alias set myminio https://${azurerm_public_ip.agw_pip.fqdn}:8443 --insecure"
 }
 
 output "storage_account_name" {

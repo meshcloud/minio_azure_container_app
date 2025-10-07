@@ -29,8 +29,9 @@ resource "azurerm_subnet" "aci_subnet" {
     name = "aci-delegation"
 
     service_delegation {
-      name    = "Microsoft.ContainerInstance/containerGroups"
-      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+      name = "Microsoft.ContainerInstance/containerGroups"
+      actions = [
+      "Microsoft.Network/virtualNetworks/subnets/action"]
     }
   }
 }
@@ -140,6 +141,89 @@ resource "azurerm_public_ip" "agw_pip" {
   sku                 = "Standard"
 }
 
+resource "azurerm_network_security_group" "agw_nsg" {
+  name                = "minio-agw-nsg"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.minio_rg.name
+}
+
+resource "azurerm_network_security_rule" "allow_https_ui" {
+  count                       = length(var.allowed_ip_addresses)
+  name                        = "AllowHTTPS-UI-${count.index}"
+  priority                    = 100 + count.index
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "443"
+  source_address_prefix       = var.allowed_ip_addresses[count.index]
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.minio_rg.name
+  network_security_group_name = azurerm_network_security_group.agw_nsg.name
+}
+
+resource "azurerm_network_security_rule" "allow_https_api" {
+  count                       = length(var.allowed_ip_addresses)
+  name                        = "AllowHTTPS-API-${count.index}"
+  priority                    = 200 + count.index
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "8443"
+  source_address_prefix       = var.allowed_ip_addresses[count.index]
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.minio_rg.name
+  network_security_group_name = azurerm_network_security_group.agw_nsg.name
+}
+
+resource "azurerm_network_security_rule" "allow_agw_management" {
+  name                        = "AllowApplicationGatewayManagement"
+  priority                    = 300
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "65200-65535"
+  source_address_prefix       = "Internet"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.minio_rg.name
+  network_security_group_name = azurerm_network_security_group.agw_nsg.name
+}
+
+resource "azurerm_network_security_rule" "allow_azureloadbalancer" {
+  name                        = "AllowAzureLoadBalancer"
+  priority                    = 400
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "AzureLoadBalancer"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.minio_rg.name
+  network_security_group_name = azurerm_network_security_group.agw_nsg.name
+}
+
+resource "azurerm_network_security_rule" "deny_all" {
+  name                        = "DenyAll"
+  priority                    = 4000
+  direction                   = "Inbound"
+  access                      = "Deny"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.minio_rg.name
+  network_security_group_name = azurerm_network_security_group.agw_nsg.name
+}
+
+resource "azurerm_subnet_network_security_group_association" "agw_nsg_association" {
+  subnet_id                 = azurerm_subnet.agw_subnet.id
+  network_security_group_id = azurerm_network_security_group.agw_nsg.id
+}
+
 resource "azurerm_application_gateway" "minio_agw" {
   name                = "minio-agw"
   location            = var.location
@@ -177,8 +261,32 @@ resource "azurerm_application_gateway" "minio_agw" {
   }
 
   backend_address_pool {
-    name  = "coraza-backend-pool"
-    fqdns = [azurerm_container_group.minio_aci_container_group.ip_address]
+    name         = "coraza-backend-pool"
+    ip_addresses = ["10.10.2.4"]
+  }
+
+  probe {
+    name                                      = "ui-health-probe"
+    protocol                                  = "Http"
+    path                                      = "/health"
+    host                                      = "10.10.2.4"
+    interval                                  = 30
+    timeout                                   = 20
+    unhealthy_threshold                       = 3
+    port                                      = 8080
+    pick_host_name_from_backend_http_settings = false
+  }
+
+  probe {
+    name                                      = "api-health-probe"
+    protocol                                  = "Http"
+    path                                      = "/health"
+    host                                      = "10.10.2.4"
+    interval                                  = 30
+    timeout                                   = 20
+    unhealthy_threshold                       = 3
+    port                                      = 8081
+    pick_host_name_from_backend_http_settings = false
   }
 
   backend_http_settings {
@@ -186,8 +294,9 @@ resource "azurerm_application_gateway" "minio_agw" {
     port                                = 8080
     protocol                            = "Http"
     request_timeout                     = 30
-    pick_host_name_from_backend_address = true
+    pick_host_name_from_backend_address = false
     cookie_based_affinity               = "Disabled"
+    probe_name                          = "ui-health-probe"
   }
 
   backend_http_settings {
@@ -195,8 +304,9 @@ resource "azurerm_application_gateway" "minio_agw" {
     port                                = 8081
     protocol                            = "Http"
     request_timeout                     = 30
-    pick_host_name_from_backend_address = true
+    pick_host_name_from_backend_address = false
     cookie_based_affinity               = "Disabled"
+    probe_name                          = "api-health-probe"
   }
 
   http_listener {
@@ -237,6 +347,10 @@ resource "azurerm_application_gateway" "minio_agw" {
     type         = "UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.agw_identity.id]
   }
+
+  depends_on = [
+    azurerm_subnet_network_security_group_association.agw_nsg_association
+  ]
 }
 
 resource "azurerm_container_group" "minio_aci_container_group" {
@@ -274,8 +388,13 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     environment_variables = {
       MINIO_ROOT_USER            = var.minio_root_user
       MINIO_ROOT_PASSWORD        = var.minio_root_password
-      MINIO_BROWSER_REDIRECT_URL = "https://${azurerm_public_ip.agw_pip.fqdn}"
+      MINIO_BROWSER_REDIRECT_URL = "https://testminio.westeurope.cloudapp.azure.com"
+      # MINIO_BROWSER              = "on"
+      # MINIO_CONSOLE_WEBROOT      = "/"
+      # MINIO_CONSOLE_ORIGINS      = "http://localhost:9001,https://testminio.westeurope.cloudapp.azure.com"
+
     }
+
     volume {
       name                 = "minio-volume"
       mount_path           = "/data"
@@ -316,10 +435,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       port     = 8081
       protocol = "TCP"
     }
-    environment_variables = {
-      MINIO_UI_BACKEND  = "localhost:9001"
-      MINIO_API_BACKEND = "localhost:9000"
-    }
+
     liveness_probe {
       http_get {
         path   = "/health"
