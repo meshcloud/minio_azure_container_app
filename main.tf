@@ -293,20 +293,31 @@ resource "azurerm_application_gateway" "minio_agw" {
     name                                = "ui-http"
     port                                = 8080
     protocol                            = "Http"
-    request_timeout                     = 30
+    request_timeout                     = 300
     pick_host_name_from_backend_address = false
     cookie_based_affinity               = "Disabled"
     probe_name                          = "ui-health-probe"
+
+    connection_draining {
+      enabled           = true
+      drain_timeout_sec = 300
+    }
+
   }
 
   backend_http_settings {
     name                                = "api-http"
     port                                = 8081
     protocol                            = "Http"
-    request_timeout                     = 30
+    request_timeout                     = 300
     pick_host_name_from_backend_address = false
     cookie_based_affinity               = "Disabled"
     probe_name                          = "api-health-probe"
+    connection_draining {
+      enabled           = true
+      drain_timeout_sec = 300
+    }
+
   }
 
   http_listener {
@@ -388,11 +399,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     environment_variables = {
       MINIO_ROOT_USER            = var.minio_root_user
       MINIO_ROOT_PASSWORD        = var.minio_root_password
-      MINIO_BROWSER_REDIRECT_URL = "https://testminio.westeurope.cloudapp.azure.com"
-      # MINIO_BROWSER              = "on"
-      # MINIO_CONSOLE_WEBROOT      = "/"
-      # MINIO_CONSOLE_ORIGINS      = "http://localhost:9001,https://testminio.westeurope.cloudapp.azure.com"
-
+      MINIO_BROWSER_REDIRECT_URL = "https://${azurerm_public_ip.agw_pip.fqdn}"
     }
 
     volume {

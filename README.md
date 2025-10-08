@@ -52,44 +52,6 @@ flowchart TD
 * Azure Subscription
 * Azure Resource Group
 * SSL Certificate (.pfx file) for HTTPS traffic
-* OpenSSL (for certificate extraction)
-
----
-
-## Creating the PFX Certificate
-
-1. **Generate a private key:**
-
-   ```bash
-   openssl genrsa -out server.key 2048
-   ```
-
-2. **Create a certificate signing request (CSR):**
-
-   ```bash
-   openssl req -new -key server.key -out server.csr
-   ```
-
-   Ensure the Common Name matches your domain.
-
-3. **Generate a self-signed certificate (or use a CA-signed certificate):**
-
-   ```bash
-   openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
-   ```
-
-4. **Create the PFX file:**
-
-   ```bash
-   openssl pkcs12 -export -out minio-cert.pfx -inkey server.key -in server.crt
-   ```
-
-5. **Extract certificate and key from PFX:**
-
-   ```bash
-   openssl pkcs12 -in minio-cert.pfx -clcerts -nokeys -out server.crt -passin pass:YOUR_PFX_PASSWORD
-   openssl pkcs12 -in minio-cert.pfx -nocerts -nodes -out server.key -passin pass:YOUR_PFX_PASSWORD
-   ```
 
 ---
 
