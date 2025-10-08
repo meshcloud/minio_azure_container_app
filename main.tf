@@ -465,5 +465,16 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       timeout_seconds       = 3
       failure_threshold     = 3
     }
+    volume {
+      name       = "caddyfile"
+      mount_path = "/etc/caddy"
+      read_only  = true
+
+      secret = {
+        "Caddyfile" = base64encode(templatefile("${path.module}/Caddyfile.working-backup.tpl", {
+        }))
+      }
+    }
+
   }
 }
