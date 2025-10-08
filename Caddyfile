@@ -84,21 +84,8 @@
         }
 
         reverse_proxy localhost:9000 {
-            header_up Host {http.request.host}
-            header_up X-Real-IP {remote}
-            header_up X-Forwarded-For {remote}
-            header_up X-Forwarded-Proto {scheme}
-
             header_up Connection {http.request.header.connection}
             header_up Upgrade {http.request.header.upgrade}
-            header_up Sec-WebSocket-Key {http.request.header.sec-websocket-key}
-            header_up Sec-WebSocket-Version {http.request.header.sec-websocket-version}
-
-
-            transport http {
-                read_timeout 300s
-                dial_timeout 300s
-            }
 
         }
     }

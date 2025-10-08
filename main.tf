@@ -262,14 +262,14 @@ resource "azurerm_application_gateway" "minio_agw" {
 
   backend_address_pool {
     name         = "coraza-backend-pool"
-    ip_addresses = ["10.10.2.4"]
+    ip_addresses = [azurerm_container_group.minio_aci_container_group.ip_address]
   }
 
   probe {
     name                                      = "ui-health-probe"
     protocol                                  = "Http"
     path                                      = "/health"
-    host                                      = "10.10.2.4"
+    host                                      = azurerm_container_group.minio_aci_container_group.ip_address
     interval                                  = 30
     timeout                                   = 20
     unhealthy_threshold                       = 3
@@ -281,7 +281,7 @@ resource "azurerm_application_gateway" "minio_agw" {
     name                                      = "api-health-probe"
     protocol                                  = "Http"
     path                                      = "/health"
-    host                                      = "10.10.2.4"
+    host                                      = azurerm_container_group.minio_aci_container_group.ip_address
     interval                                  = 30
     timeout                                   = 20
     unhealthy_threshold                       = 3
