@@ -6,7 +6,6 @@ A modern Web Application Firewall built with [Coraza](https://coraza.io) and [Ca
 
 - ✅ **OWASP Core Rule Set v4** - Latest security rules
 - ✅ **Multi-backend routing** - Single WAF protects MinIO UI + API
-- ✅ **Automatic HTTPS** - TLS termination included
 - ✅ **Security headers** - Production-ready security configuration
 - ✅ **Health checks** - Built-in monitoring endpoints
 - ✅ **Rate limiting** - API protection against abuse
@@ -45,8 +44,8 @@ docker run -d \
 ## Architecture
 
 ```
-Internet → Caddy WAF (8443) → MinIO UI (9001)
-                           → MinIO API (9000)
+Caddy WAF (8080) → MinIO UI (9001)
+          (8081) → MinIO API (9000)
 ```
 
 ### Request Routing
@@ -66,7 +65,6 @@ Internet → Caddy WAF (8443) → MinIO UI (9001)
 - Rate limiting (100 req/min per IP for API endpoints)
 
 ### Custom MinIO Rules
-- Blocks access to `/minio/admin` endpoints
 - Logs all DELETE operations for audit
 - Rate limits API endpoints
 
