@@ -76,12 +76,13 @@ variable "coraza_waf_image" {
 }
 
 variable "allowed_ip_addresses" {
-  type        = list(string)
-  description = "List of IP addresses that will be allowed to access the MinIO service (CIDR format, e.g., ['203.0.113.0/32', '192.168.1.0/24'])"
+  type        = string
+  description = "Comma-separated list of IP addresses that will be allowed to access the MinIO service in CIDR format. Example: '203.0.113.0/32' for a single IP or '10.10.10.2/32,192.168.1.0/24' for multiple IPs."
+  default     = "10.10.10.2/32"
   validation {
     condition = alltrue([
-      for ip in var.allowed_ip_addresses : can(cidrhost(ip, 0))
+      for ip in split(",", var.allowed_ip_addresses) : can(cidrhost(trimspace(ip), 0))
     ])
-    error_message = "All IP addresses must be in valid CIDR format (e.g., '203.0.113.0/32' for a single IP or '192.168.1.0/24' for a subnet)."
+    error_message = "All IP addresses must be in valid CIDR format (e.g., '10.10.10.2/32' for a single IP or '192.168.1.0/24' for a subnet)."
   }
 }
