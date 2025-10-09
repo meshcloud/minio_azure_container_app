@@ -83,7 +83,7 @@ resource "azurerm_key_vault" "minio_kv" {
   soft_delete_retention_days = 7
 }
 
-resource "azurerm_key_vault_access_policy" "tf" {
+resource "azurerm_key_vault_access_policy" "minio_cert_policy" {
   key_vault_id = azurerm_key_vault.minio_kv.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = data.azurerm_client_config.current.object_id
@@ -116,6 +116,7 @@ resource "azurerm_key_vault_certificate" "minio_cert" {
 
     }
   }
+  depends_on = [azurerm_key_vault_access_policy.minio_cert_policy]
 }
 
 resource "azurerm_user_assigned_identity" "agw_identity" {
@@ -147,8 +148,14 @@ resource "azurerm_network_security_group" "agw_nsg" {
   resource_group_name = azurerm_resource_group.minio_rg.name
 }
 
+locals {
+  allowed_ips_list = [
+    for ip in split(",", var.allowed_ip_addresses) : trimspace(ip)
+  ]
+}
+
 resource "azurerm_network_security_rule" "allow_https_ui" {
-  count                       = length(var.allowed_ip_addresses)
+  count                       = length(local.allowed_ips_list)
   name                        = "AllowHTTPS-UI-${count.index}"
   priority                    = 100 + count.index
   direction                   = "Inbound"
@@ -156,14 +163,14 @@ resource "azurerm_network_security_rule" "allow_https_ui" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "443"
-  source_address_prefix       = var.allowed_ip_addresses[count.index]
+  source_address_prefix       = local.allowed_ips_list[count.index]
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.minio_rg.name
   network_security_group_name = azurerm_network_security_group.agw_nsg.name
 }
 
 resource "azurerm_network_security_rule" "allow_https_api" {
-  count                       = length(var.allowed_ip_addresses)
+  count                       = length(local.allowed_ips_list)
   name                        = "AllowHTTPS-API-${count.index}"
   priority                    = 200 + count.index
   direction                   = "Inbound"
@@ -171,7 +178,7 @@ resource "azurerm_network_security_rule" "allow_https_api" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "8443"
-  source_address_prefix       = var.allowed_ip_addresses[count.index]
+  source_address_prefix       = local.allowed_ips_list[count.index]
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.minio_rg.name
   network_security_group_name = azurerm_network_security_group.agw_nsg.name
