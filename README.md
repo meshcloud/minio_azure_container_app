@@ -163,7 +163,7 @@ No modules.
 | [azurerm_container_group.minio_aci_container_group](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/container_group) | resource |
 | [azurerm_key_vault.minio_kv](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault) | resource |
 | [azurerm_key_vault_access_policy.agw_policy](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
-| [azurerm_key_vault_access_policy.tf](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
+| [azurerm_key_vault_access_policy.minio_cert_policy](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
 | [azurerm_key_vault_certificate.minio_cert](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_certificate) | resource |
 | [azurerm_log_analytics_workspace.minio_law](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/log_analytics_workspace) | resource |
 | [azurerm_network_security_group.agw_nsg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_group) | resource |

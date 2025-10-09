@@ -83,7 +83,7 @@ resource "azurerm_key_vault" "minio_kv" {
   soft_delete_retention_days = 7
 }
 
-resource "azurerm_key_vault_access_policy" "tf" {
+resource "azurerm_key_vault_access_policy" "minio_cert_policy" {
   key_vault_id = azurerm_key_vault.minio_kv.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = data.azurerm_client_config.current.object_id
@@ -116,6 +116,7 @@ resource "azurerm_key_vault_certificate" "minio_cert" {
 
     }
   }
+  depends_on = [azurerm_key_vault_access_policy.minio_cert_policy]
 }
 
 resource "azurerm_user_assigned_identity" "agw_identity" {
