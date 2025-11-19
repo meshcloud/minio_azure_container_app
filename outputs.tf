@@ -8,6 +8,11 @@ output "s3_api_url" {
   value       = "https://${azurerm_public_ip.agw_pip.fqdn}:8443"
 }
 
+output "keycloak_url" {
+  description = "Keycloak admin console URL"
+  value       = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+}
+
 output "fqdn" {
   description = "Fully qualified domain name"
   value       = azurerm_public_ip.agw_pip.fqdn

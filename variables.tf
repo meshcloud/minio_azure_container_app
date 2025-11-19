@@ -86,3 +86,50 @@ variable "allowed_ip_addresses" {
     error_message = "All IP addresses must be in valid CIDR format (e.g., '10.10.10.2/32' for a single IP or '192.168.1.0/24' for a subnet)."
   }
 }
+
+variable "postgres_db" {
+  type        = string
+  default     = "keycloakdb"
+  description = "PostgreSQL database name for Keycloak"
+}
+
+variable "postgres_user" {
+  type        = string
+  default     = "psuser"
+  description = "PostgreSQL username"
+}
+
+variable "postgres_password" {
+  type        = string
+  sensitive   = true
+  nullable    = false
+  description = "PostgreSQL password"
+  validation {
+    condition     = length(var.postgres_password) > 0
+    error_message = "PostgreSQL password cannot be empty."
+  }
+}
+
+variable "keycloak_admin_user" {
+  type        = string
+  default     = "admin"
+  description = "Keycloak admin username"
+}
+
+variable "keycloak_admin_password" {
+  type        = string
+  sensitive   = true
+  nullable    = false
+  description = "Keycloak admin password"
+  validation {
+    condition     = length(var.keycloak_admin_password) > 0
+    error_message = "Keycloak admin password cannot be empty."
+  }
+}
+
+variable "keycloak_client_secret" {
+  type        = string
+  sensitive   = true
+  default     = "nrb2E4DKOL7QmShrtTO1O7RERXeKt6UC"
+  description = "Keycloak OIDC client secret for MinIO"
+}

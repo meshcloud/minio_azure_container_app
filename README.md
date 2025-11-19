@@ -1,6 +1,6 @@
 # MinIO Azure Container App
 
-This repo deploys a MinIO Container to an **Azure Container Group** with Azure Application Gateway for SSL termination, IP restrictions, and Coraza WAF for comprehensive security protection.
+This repo deploys a MinIO Container to an **Azure Container Group** with Azure Application Gateway for SSL termination, IP restrictions, Coraza WAF for comprehensive security protection, and Keycloak for SSO authentication.
 
 ---
 
@@ -9,18 +9,24 @@ This repo deploys a MinIO Container to an **Azure Container Group** with Azure A
 ```mermaid
 flowchart TD
     subgraph External
-        A[External Traffic<br>HTTPS:443 / 8443<br>IP Restricted]
+        A[External Traffic<br>HTTPS:443 / 8443 / 8444<br>IP Restricted]
     end
 
     A --> B[Azure Application Gateway<br>SSL Termination & Load Balancing<br>IP Restrictions via NSG]
 
-    B --> C[Coraza WAF Container<br>Ports: 8080, 8081<br>OWASP CRS + Rate Limiting]
+    B --> C[Coraza WAF Container<br>Ports: 8080, 8081, 8082<br>OWASP CRS + Rate Limiting]
 
     C -->|Port 8080| E[MinIO UI<br>Port 9001]
     C -->|Port 8081| F[MinIO API<br>Port 9000]
+    C -->|Port 8082| K[Keycloak<br>Port 8080]
 
     E --> G[Azure File Share / Storage Account]
     F --> G
+    K --> H[PostgreSQL<br>Port 5432]
+    K --> I[Azure File Share<br>Keycloak Data]
+    H --> J[Azure File Share<br>Postgres Data]
+
+    E -.OIDC Auth.-> K
 
     subgraph "Azure Virtual Network"
         subgraph "Application Gateway Subnet"
@@ -30,6 +36,8 @@ flowchart TD
             C
             E
             F
+            K
+            H
         end
     end
 ```
@@ -38,11 +46,13 @@ flowchart TD
 
 ## Components
 
-* **MinIO Container**: Runs the object storage service (ports 9000/9001 - internal only)
-* **Azure Application Gateway**: Provides SSL termination, load balancing, and IP restrictions (ports 443/8443 - externally exposed)
-* **Coraza WAF Container**: Modern WAF with OWASP Core Rule Set protecting both UI (8080) and API (8081)
+* **MinIO Container**: Runs the object storage service with OIDC authentication (ports 9000/9001 - internal only)
+* **Keycloak Container**: Identity provider for SSO authentication (port 8080 - internal, exposed via port 8444 externally)
+* **PostgreSQL Container**: Database backend for Keycloak (port 5432 - internal only)
+* **Azure Application Gateway**: Provides SSL termination, load balancing, and IP restrictions (ports 443/8443/8444 - externally exposed)
+* **Coraza WAF Container**: Modern WAF with OWASP Core Rule Set protecting MinIO UI (8080), API (8081), and Keycloak (8082)
 * **Network Security Group**: Controls inbound traffic with IP-based access restrictions
-* **Storage**: Uses Azure File Share for persistent data storage
+* **Storage**: Uses Azure File Shares for persistent data storage (MinIO data, Postgres data, Keycloak data)
 * **Virtual Network**: Isolates components with dedicated subnets for Application Gateway and Container Instances
 
 ---
@@ -52,6 +62,7 @@ flowchart TD
 * Azure Subscription
 * Azure Resource Group
 * SSL Certificate (.pfx file) for HTTPS traffic
+* Credentials for PostgreSQL and Keycloak (provided as Terraform variables)
 
 ---
 
@@ -65,11 +76,27 @@ flowchart TD
 https://your-domain.region.azurecontainer.io/
 ```
 
+You can log in using:
+- **Root credentials**: MinIO root user/password (configured via Terraform variables)
+- **SSO**: Click "Login with SSO" to authenticate via Keycloak
+
 **S3 API (for applications/tools):**
 
 ```
 https://your-domain.region.azurecontainer.io:8443/
 ```
+
+### Accessing Keycloak
+
+**Admin Console:**
+
+```
+https://your-domain.region.azurecontainer.io:8444/
+```
+
+Default realm: `minio_realm`
+- Pre-configured with OpenID client `minio-client`
+- Test user: `testuser` with role `readonly` (credentials in `keycloak-minio-docker/minio-realm-config.json`)
 
 ### Using MinIO Client (mc)
 
@@ -109,12 +136,12 @@ aws s3 ls --endpoint-url https://your-domain.region.azurecontainer.io:8443 --no-
 
 ## Resources Created
 
-* **Application Gateway**: Provides SSL termination, load balancing, and public access
+* **Application Gateway**: Provides SSL termination, load balancing, and public access (ports 443, 8443, 8444)
 * **Virtual Network**: Network isolation with dedicated subnets
 * **Network Security Group**: IP-based access restrictions
-* **Container Group**: Hosts MinIO and Coraza WAF containers
+* **Container Group**: Hosts MinIO, Keycloak, PostgreSQL, and Coraza WAF containers
 * **Storage Account**: Provides persistent storage
-* **Storage Share**: Azure File Share for MinIO data
+* **Storage Shares**: Azure File Shares for MinIO data, PostgreSQL data, and Keycloak data
 * **Key Vault**: Stores SSL certificates securely
 * **Log Analytics Workspace**: For monitoring and logs
 
