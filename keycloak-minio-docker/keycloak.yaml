@@ -1,0 +1,49 @@
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - keycloak-network
+
+  keycloak:
+    container_name: keycloak_app
+    image: quay.io/keycloak/keycloak:latest
+    user: root
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
+      KC_HTTP_ENABLED: 'true'
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HOSTNAME: keycloak
+      KEYCLOAK_IMPORT: /opt/keycloak/data/import/realm-config.json
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-db/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres-db
+    networks:
+      - keycloak-network
+    command: ["start", "--import-realm"]
+    volumes:
+      - ./minio-realm-config.json:/opt/keycloak/data/import/minio-realm-config.json
+      - keycloak-data:/opt/keycloak/data
+
+volumes:
+  postgres_data:
+    driver: local
+  keycloak-data:
+
+networks:
+  keycloak-network:
+    name: keycloak-network
+    driver: bridge
+
