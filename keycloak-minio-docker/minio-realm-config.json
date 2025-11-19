@@ -34,9 +34,12 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "standardFlowEnabled": true,
-      "rootUrl": "http://127.0.0.1:9001",
+      "rootUrl": "http://localhost:8080",
       "redirectUris": [
-        "http://127.0.0.1:9001/oauth_callback"
+        "http://localhost:8080/oauth_callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8080"
       ],
       "defaultClientScopes": [
         "openid",

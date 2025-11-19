@@ -1,33 +1,90 @@
 version: '3.8'
+
 services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-keycloakdb}
+      POSTGRES_USER: ${POSTGRES_USER:-psuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pspassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - minio-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_app
+    user: root
+    restart: always
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD:-admin}
+      KC_HTTP_ENABLED: 'true'
+      KC_HOSTNAME_STRICT: false
+      KC_PROXY_HEADERS: xforwarded
+      KEYCLOAK_IMPORT: /opt/keycloak/data/import/realm-config.json
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-db/${POSTGRES_DB:-keycloakdb}
+      KC_DB_USERNAME: ${POSTGRES_USER:-psuser}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-pspassword}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./keycloak-minio-docker/minio-realm-config.json:/opt/keycloak/data/import/minio-realm-config.json
+      - keycloak-data:/opt/keycloak/data
+    command: ["start", "--import-realm"]
+    depends_on:
+      - postgres-db
+    networks:
+      - minio-net
+
   minio:
     image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
     container_name: minio
     command: server /data --console-address ":9001" --address ":9000"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=your-password
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_IDENTITY_OPENID_CONFIG_URL: http://coraza-waf:8082/realms/minio_realm/.well-known/openid-configuration
+      MINIO_IDENTITY_OPENID_CLIENT_ID: minio-client
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET: nrb2E4DKOL7QmShrtTO1O7RERXeKt6UC
+      MINIO_IDENTITY_OPENID_CLAIM_NAME: "policy"
+      MINIO_IDENTITY_OPENID_SCOPES: openid,profile,email
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:8080
+      MINIO_IDENTITY_OPENID_REDIRECT_URI: http://localhost:8080/oauth_callback
+      MINIO_IDENTITY_OPENID_DISPLAY_NAME: "Login with SSO"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:172.18.0.1"
     volumes:
       - minio-data:/data
+    depends_on:
+      - keycloak
+    restart: unless-stopped
     networks:
       - minio-net
 
   coraza-waf:
     image: coraza-waf-local:latest
     container_name: coraza-waf
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
     ports:
       - "8080:8080"
       - "8081:8081"
+      - "8082:8082"
     depends_on:
       - minio
+      - keycloak
     networks:
       - minio-net
 
 volumes:
   minio-data:
+  postgres_data:
+  keycloak-data:
 
 networks:
   minio-net:

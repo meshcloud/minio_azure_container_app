@@ -1,7 +1,7 @@
 # Multi-stage build for Coraza-Caddy WAF
 
 # --- Versions ---
-ARG CADDY_VERSION=2.8
+ARG CADDY_VERSION=2.9
 ARG CORAZA_VERSION=v2.0.0
 
 # --- Build stage ---
@@ -10,7 +10,8 @@ ARG CORAZA_VERSION
 ENV CORAZA_VERSION=${CORAZA_VERSION}
 
 RUN xcaddy build \
-    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
+    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION} \
+    --with github.com/caddyserver/replace-response
 
 # --- Runtime stage ---
 FROM caddy:${CADDY_VERSION}-alpine

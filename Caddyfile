@@ -10,7 +10,7 @@
 
     # Handle WebSocket paths without WAF
     handle /ws/* {
-        reverse_proxy localhost:9001 {
+        reverse_proxy minio:9001 {
             header_up Host {http.request.host}
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
@@ -37,7 +37,7 @@
             `
         }
 
-        reverse_proxy localhost:9001 {
+        reverse_proxy minio:9001 {
             header_up Host {http.request.host}
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
@@ -51,6 +51,23 @@
                 dial_timeout 300s
             }
         }
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# --- Keycloak Proxy (port 8082) ---
+:8082 {
+    reverse_proxy keycloak:8080 {
+        header_up Host localhost:8082
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-Proto http
+        header_up X-Forwarded-Host localhost:8082
+        header_up X-Forwarded-Port 8082
     }
 
     log {
@@ -78,7 +95,7 @@
             `
         }
 
-        reverse_proxy localhost:9000 {
+        reverse_proxy minio:9000 {
             header_up Connection {http.request.header.connection}
             header_up Upgrade {http.request.header.upgrade}
         }
