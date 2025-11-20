@@ -1,0 +1,2 @@
+# Issuer Client-ID expiration-policy
+http://coraza-waf:8082/realms/minio_realm opkssh-client 24h

@@ -77,6 +77,28 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "opkssh-client",
+      "name": "OpenPubkey SSH Client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "redirectUris": [
+        "http://localhost:3000/login-callback",
+        "http://localhost:10001/login-callback",
+        "http://localhost:11110/login-callback"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ]
     }
   ],
   "roles": {

@@ -81,6 +81,22 @@ services:
     networks:
       - minio-net
 
+  ssh-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh-server
+    container_name: ssh-test-server
+    ports:
+      - "2222:2222"
+    volumes:
+      - ./opk-providers:/etc/opk/providers:ro
+      - ./opk-auth_id:/etc/opk/auth_id:ro
+    depends_on:
+      - keycloak
+      - coraza-waf
+    networks:
+      - minio-net
+
 volumes:
   minio-data:
   postgres_data:

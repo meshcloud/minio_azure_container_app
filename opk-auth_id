@@ -1,0 +1,2 @@
+# principal email/sub issuer
+testuser test@test.com http://coraza-waf:8082/realms/minio_realm
