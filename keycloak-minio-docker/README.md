@@ -1,5 +1,3 @@
-Here is the polished and spell-checked version of your markdown text:
-
 ## Setup
 
 The **Keycloak** container must be running before the **MinIO** container starts up. It takes a few minutes for **Keycloak** and **Postgres** to fully bootstrap.
