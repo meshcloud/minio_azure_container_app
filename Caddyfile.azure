@@ -62,32 +62,14 @@
 }
 
 # --- Keycloak Proxy HTTP (port 8082) ---
+# Azure App Gateway handles TLS termination, so internal traffic uses HTTP
 :8082 {
-    reverse_proxy keycloak:8083 {
-        header_up Host localhost:8082
-        header_up X-Real-IP {remote}
-        header_up X-Forwarded-Proto http
-        header_up X-Forwarded-Host localhost:8082
-        header_up X-Forwarded-Port 8082
-    }
-
-    log {
-        output stdout
-        format json
-        level INFO
-    }
-}
-
-# --- Keycloak Proxy HTTPS (port 8443) ---
-localhost:8443 {
-    tls internal
-
-    reverse_proxy keycloak:8083 {
-        header_up Host localhost:8443
-        header_up X-Real-IP {remote}
+    reverse_proxy localhost:8080 {
+        header_up Host {http.request.header.X-Forwarded-Host}
+        header_up X-Real-IP {http.request.header.X-Forwarded-For}
         header_up X-Forwarded-Proto https
-        header_up X-Forwarded-Host localhost:8443
-        header_up X-Forwarded-Port 8443
+        header_up X-Forwarded-Host {http.request.header.X-Forwarded-Host}
+        header_up X-Forwarded-Port 8444
     }
 
     log {

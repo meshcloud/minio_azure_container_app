@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  ssh-external-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh-external-test
+    container_name: ssh-external-test
+    ports:
+      - "2223:2222"
+    volumes:
+      - ./opk-providers-azure:/etc/opk/providers:ro
+      - ./opk-auth_id-azure:/etc/opk/auth_id:ro
+    networks:
+      - external-test-net
+
+networks:
+  external-test-net:
+    driver: bridge
