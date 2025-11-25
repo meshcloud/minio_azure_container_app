@@ -1,5 +1,6 @@
 {
     order coraza_waf first
+    auto_https disable_redirects
 }
 
 # --- WAF for MinIO UI (port 8080) ---
@@ -60,7 +61,7 @@
     }
 }
 
-# --- Keycloak Proxy (port 8082) ---
+# --- Keycloak Proxy HTTP (port 8082) ---
 :8082 {
     reverse_proxy keycloak:8080 {
         header_up Host localhost:8082
@@ -68,6 +69,25 @@
         header_up X-Forwarded-Proto http
         header_up X-Forwarded-Host localhost:8082
         header_up X-Forwarded-Port 8082
+    }
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# --- Keycloak Proxy HTTPS (port 8443) ---
+localhost:8443 {
+    tls internal
+
+    reverse_proxy keycloak:8080 {
+        header_up Host localhost:8443
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host localhost:8443
+        header_up X-Forwarded-Port 8443
     }
 
     log {

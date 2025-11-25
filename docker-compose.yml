@@ -69,12 +69,15 @@ services:
   coraza-waf:
     image: coraza-waf-local:latest
     container_name: coraza-waf
+    user: root
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
     ports:
       - "8080:8080"
       - "8081:8081"
       - "8082:8082"
+      - "8443:8443"
     depends_on:
       - minio
       - keycloak
@@ -88,9 +91,10 @@ services:
     container_name: ssh-test-server
     ports:
       - "2222:2222"
+    extra_hosts:
+      - "localhost:host-gateway"
     volumes:
-      - ./opk-providers:/etc/opk/providers:ro
-      - ./opk-auth_id:/etc/opk/auth_id:ro
+      - caddy-data:/caddy-data:ro
     depends_on:
       - keycloak
       - coraza-waf
@@ -101,6 +105,7 @@ volumes:
   minio-data:
   postgres_data:
   keycloak-data:
+  caddy-data:
 
 networks:
   minio-net:

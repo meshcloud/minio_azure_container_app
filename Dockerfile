@@ -25,8 +25,8 @@ RUN addgroup -g 1001 -S caddy && \
     adduser -u 1001 -S caddy -G caddy
 
 # Create directories with proper permissions
-RUN mkdir -p /etc/caddy /var/lib/caddy /var/log/caddy && \
-    chown -R caddy:caddy /etc/caddy /var/lib/caddy /var/log/caddy
+RUN mkdir -p /etc/caddy /var/lib/caddy /var/log/caddy /data/caddy && \
+    chown -R caddy:caddy /etc/caddy /var/lib/caddy /var/log/caddy /data/caddy
 
 # Copy Caddyfile template
 COPY Caddyfile /etc/caddy/Caddyfile

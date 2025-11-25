@@ -2,6 +2,42 @@
 
 This guide shows you how to test SSH authentication using OpenID Connect (OIDC) via Keycloak.
 
+## ⚠️ Important: HTTPS Requirement
+
+**opkssh requires HTTPS for the OIDC issuer.** The current setup uses HTTP for local testing which is not compatible with opkssh v0.10.0+.
+
+### Options:
+
+1. **Use a cloud Keycloak instance with HTTPS** (Recommended for real testing)
+2. **Wait for HTTP support** in future opkssh versions
+3. **Use an HTTPS proxy/tunnel** like ngrok or Cloudflare Tunnel
+
+## Current Status
+
+The setup is configured but **cannot be tested locally** due to the HTTPS requirement. The following files are ready:
+
+- ✅ Keycloak OIDC client (`opkssh-client`) configured
+- ✅ SSH test server with opkssh installed
+- ✅ Authorization rules configured
+- ❌ HTTPS endpoint (required by opkssh)
+
+## Alternative: Test with External SSH Server
+
+If you have an external SSH server with a public IP, you can install opkssh there and use your local Keycloak with an HTTPS tunnel.
+
+### Using ngrok (Quick Setup)
+
+```bash
+# Install ngrok
+brew install ngrok  # macOS
+# or download from https://ngrok.com/
+
+# Create HTTPS tunnel to Keycloak
+ngrok http 8082
+```
+
+Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`) and use it as your issuer.
+
 ## What is opkssh?
 
 opkssh enables SSH authentication using OpenID Connect identities (like `test@test.com`) instead of traditional SSH keys. Your OIDC identity token is embedded in a temporary SSH certificate that expires after 24 hours.
@@ -61,19 +97,16 @@ docker-compose ps
 
 ### Step 1: Login with opkssh
 
-Run this command to authenticate with Keycloak:
+**Note:** This step currently fails due to HTTPS requirement. Example command:
 
 ```bash
-opkssh login --provider="http://localhost:8082/realms/minio_realm,opkssh-client"
+opkssh login --provider="https://your-keycloak-with-https.com/realms/minio_realm,opkssh-client"
 ```
 
-**What happens:**
-1. Your browser opens to Keycloak login page
-2. Login with:
-   - **Username:** `testuser`
-   - **Password:** `password`
-3. opkssh generates an SSH certificate at `~/.ssh/id_ecdsa`
-4. The certificate contains your OIDC identity token from Keycloak
+Error you'll see with HTTP:
+```
+Error: invalid provider issuer value. Expected issuer to start with 'https://'
+```
 
 ### Step 2: SSH to the Test Server
 
