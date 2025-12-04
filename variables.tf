@@ -87,27 +87,16 @@ variable "allowed_ip_addresses" {
   }
 }
 
-variable "postgres_db" {
+variable "mariadb_database" {
   type        = string
-  default     = "keycloakdb"
-  description = "PostgreSQL database name for Keycloak"
+  default     = "mariadb"
+  description = "MariaDB database name for Keycloak"
 }
 
-variable "postgres_user" {
+variable "mariadb_user" {
   type        = string
-  default     = "psuser"
-  description = "PostgreSQL username"
-}
-
-variable "postgres_password" {
-  type        = string
-  sensitive   = true
-  nullable    = false
-  description = "PostgreSQL password"
-  validation {
-    condition     = length(var.postgres_password) > 0
-    error_message = "PostgreSQL password cannot be empty."
-  }
+  default     = "keycloak"
+  description = "MariaDB username"
 }
 
 variable "keycloak_admin_user" {

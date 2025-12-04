@@ -4,6 +4,12 @@ resource "random_string" "storage_suffix" {
   upper   = false
 }
 
+resource "random_password" "mariadb_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
 resource "azurerm_virtual_network" "minio_vnet" {
   name                = "minio-vnet"
   address_space       = ["10.10.0.0/16"]
@@ -71,8 +77,8 @@ resource "azurerm_storage_share" "minio_share" {
   quota              = var.storage_share_size
 }
 
-resource "azurerm_storage_share" "postgres_share" {
-  name               = "postgresstorageshare"
+resource "azurerm_storage_share" "mariadb_share" {
+  name               = "mariadbstorageshare"
   storage_account_id = azurerm_storage_account.minio_storage_account.id
   quota              = 10
 }
@@ -465,35 +471,40 @@ resource "azurerm_container_group" "minio_aci_container_group" {
   }
 
   container {
-    name         = "postgres"
-    image        = "postgres:16-alpine"
+    name         = "mariadb"
+    image        = "mariadb:11"
     cpu          = "0.5"
     memory       = "1.0"
     cpu_limit    = 1.0
     memory_limit = 1.5
 
     environment_variables = {
-      POSTGRES_DB       = var.postgres_db
-      POSTGRES_USER     = var.postgres_user
-      POSTGRES_PASSWORD = var.postgres_password
+      MARIADB_USER          = var.mariadb_user
+      MARIADB_PASSWORD      = random_password.mariadb_password.result
+      MARIADB_DATABASE      = var.mariadb_database
+      MARIADB_ROOT_PASSWORD = random_password.mariadb_password.result
     }
 
     ports {
-      port     = 5432
+      port     = 3306
       protocol = "TCP"
     }
 
     volume {
-      name                 = "postgres-data"
-      mount_path           = "/var/lib/postgresql/data"
+      name                 = "mariadb-data"
+      mount_path           = "/var/lib/mysql"
       read_only            = false
       storage_account_name = azurerm_storage_account.minio_storage_account.name
       storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
-      share_name           = azurerm_storage_share.postgres_share.name
+      share_name           = azurerm_storage_share.mariadb_share.name
+    }
+
+    security {
+      privilege_enabled = true
     }
 
     liveness_probe {
-      exec = ["pg_isready", "-U", var.postgres_user, "-d", var.postgres_db]
+      exec = ["/bin/sh", "-c", "mariadb -u root -p$MARIADB_ROOT_PASSWORD -e 'SELECT 1'"]
 
       initial_delay_seconds = 30
       period_seconds        = 10
@@ -517,14 +528,16 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       KC_HOSTNAME_STRICT          = "false"
       KC_PROXY_HEADERS            = "xforwarded"
       KEYCLOAK_IMPORT             = "/opt/keycloak/data/import/realm-config.json"
-      KC_DB                       = "postgres"
-      KC_DB_URL                   = "jdbc:postgresql://localhost/${var.postgres_db}"
-      KC_DB_USERNAME              = var.postgres_user
-      KC_DB_PASSWORD              = var.postgres_password
+      KC_DB                       = "mariadb"
+      KC_DB_URL                   = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
+      KC_DB_USERNAME              = var.mariadb_user
+      KC_DB_PASSWORD              = random_password.mariadb_password.result
+      KC_HTTP_PORT                = "8083"
+      KC_HOSTNAME                 = "localhost"
     }
 
     ports {
-      port     = 8080
+      port     = 8083
       protocol = "TCP"
     }
 
@@ -540,22 +553,26 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
     volume {
       name                 = "keycloak-data"
-      mount_path           = "/opt/keycloak/data/h2"
+      mount_path           = "/opt/keycloak/data"
       read_only            = false
       storage_account_name = azurerm_storage_account.minio_storage_account.name
       storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
       share_name           = azurerm_storage_share.keycloak_share.name
     }
 
-    commands = ["start", "--import-realm"]
+    commands = [
+      "/bin/bash",
+      "-c",
+      "until timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/3306' 2>/dev/null; do echo 'Waiting for MariaDB...'; sleep 2; done && /opt/keycloak/bin/kc.sh start --import-realm"
+    ]
 
     liveness_probe {
       http_get {
         path   = "/health/live"
-        port   = 8080
+        port   = 8083
         scheme = "http"
       }
-      initial_delay_seconds = 120
+      initial_delay_seconds = 400
       period_seconds        = 30
       timeout_seconds       = 10
       failure_threshold     = 3
@@ -564,10 +581,10 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     readiness_probe {
       http_get {
         path   = "/health/ready"
-        port   = 8080
+        port   = 8083
         scheme = "http"
       }
-      initial_delay_seconds = 60
+      initial_delay_seconds = 400
       period_seconds        = 10
       timeout_seconds       = 5
       failure_threshold     = 3
@@ -593,7 +610,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       MINIO_ROOT_USER                     = var.minio_root_user
       MINIO_ROOT_PASSWORD                 = var.minio_root_password
       MINIO_BROWSER_REDIRECT_URL          = "https://${azurerm_public_ip.agw_pip.fqdn}"
-      MINIO_IDENTITY_OPENID_CONFIG_URL    = "http://localhost:8082/realms/minio_realm/.well-known/openid-configuration"
+      MINIO_IDENTITY_OPENID_CONFIG_URL    = "http://localhost:8083/realms/minio_realm/.well-known/openid-configuration"
       MINIO_IDENTITY_OPENID_CLIENT_ID     = "minio-client"
       MINIO_IDENTITY_OPENID_CLIENT_SECRET = var.keycloak_client_secret
       MINIO_IDENTITY_OPENID_CLAIM_NAME    = "policy"
@@ -631,7 +648,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     name         = "coraza-waf"
     image        = var.coraza_waf_image
     cpu          = "1.0"
-    memory       = "1.0"
+    memory       = "2.0"
     cpu_limit    = 1.0
     memory_limit = 2.0
     ports {
@@ -667,16 +684,16 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
     # The Caddyfile is included as part of the container build.
     # If you are testing or want to use a different configuration, you can provide your own
-    # volume {
-    #   name       = "caddyfile"
-    #   mount_path = "/etc/caddy"
-    #   read_only  = true
+    volume {
+      name       = "caddyfile"
+      mount_path = "/etc/caddy"
+      read_only  = true
 
-    #   secret = {
-    #     "Caddyfile" = base64encode(templatefile("${path.module}/Caddyfile.working.tpl", {
-    #     }))
-    #   }
-    # }
+      secret = {
+        "Caddyfile" = base64encode(templatefile("${path.module}/Caddyfile.azure", {
+        }))
+      }
+    }
 
   }
 }

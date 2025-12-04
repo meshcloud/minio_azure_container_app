@@ -11,7 +11,7 @@
 
     # Handle WebSocket paths without WAF
     handle /ws/* {
-        reverse_proxy minio:9001 {
+        reverse_proxy localhost:9001 {
             header_up Host {http.request.host}
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
@@ -38,7 +38,7 @@
             `
         }
 
-        reverse_proxy minio:9001 {
+        reverse_proxy localhost:9001 {
             header_up Host {http.request.host}
             header_up X-Real-IP {remote}
             header_up X-Forwarded-For {remote}
@@ -62,14 +62,10 @@
 }
 
 # --- Keycloak Proxy HTTP (port 8082) ---
-# Azure App Gateway handles TLS termination, so internal traffic uses HTTP
 :8082 {
-    reverse_proxy localhost:8080 {
+    reverse_proxy localhost:8083 {
         header_up Host {http.request.header.X-Forwarded-Host}
         header_up X-Real-IP {http.request.header.X-Forwarded-For}
-        header_up X-Forwarded-Proto https
-        header_up X-Forwarded-Host {http.request.header.X-Forwarded-Host}
-        header_up X-Forwarded-Port 8444
     }
 
     log {
@@ -97,7 +93,7 @@
             `
         }
 
-        reverse_proxy minio:9000 {
+        reverse_proxy localhost:9000 {
             header_up Connection {http.request.header.connection}
             header_up Upgrade {http.request.header.upgrade}
         }
