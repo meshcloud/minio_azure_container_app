@@ -10,6 +10,14 @@ resource "random_password" "mariadb_password" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
+resource "random_password" "keycloak_client_secret" {
+  length           = 32
+  special          = false
+  upper            = true
+  lower            = true
+  numeric          = true
+}
+
 resource "azurerm_virtual_network" "minio_vnet" {
   name                = "minio-vnet"
   address_space       = ["10.10.0.0/16"]
@@ -132,6 +140,9 @@ resource "azurerm_key_vault_certificate" "minio_cert" {
       validity_in_months = 12
       key_usage          = ["digitalSignature", "keyEncipherment", "keyAgreement", "dataEncipherment", "keyCertSign"]
 
+      subject_alternative_names {
+        dns_names = [azurerm_public_ip.agw_pip.fqdn]
+      }
     }
   }
   depends_on = [azurerm_key_vault_access_policy.minio_cert_policy]
@@ -568,7 +579,14 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       read_only  = true
 
       secret = {
-        "minio-realm-config.json" = filebase64("${path.module}/minio-realm-config.json")
+        "minio-realm-config.json" = base64encode(templatefile("${path.module}/minio-realm-config.json.tpl", {
+          fqdn                  = azurerm_public_ip.agw_pip.fqdn
+          minio_client_secret   = random_password.keycloak_client_secret.result
+          test_user_username    = var.keycloak_test_user_username
+          test_user_email       = var.keycloak_test_user_email
+          test_user_password    = var.keycloak_test_user_password
+          opkssh_redirect_uris  = jsonencode(var.opkssh_redirect_uris)
+        }))
       }
     }
 
@@ -616,7 +634,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       MINIO_BROWSER_REDIRECT_URL          = "https://${azurerm_public_ip.agw_pip.fqdn}"
       MINIO_IDENTITY_OPENID_CONFIG_URL    = "http://localhost:8083/realms/minio_realm/.well-known/openid-configuration"
       MINIO_IDENTITY_OPENID_CLIENT_ID     = "minio-client"
-      MINIO_IDENTITY_OPENID_CLIENT_SECRET = var.keycloak_client_secret
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET = random_password.keycloak_client_secret.result
       MINIO_IDENTITY_OPENID_CLAIM_NAME    = "policy"
       MINIO_IDENTITY_OPENID_SCOPES        = "openid,profile,email"
       MINIO_IDENTITY_OPENID_REDIRECT_URI  = "https://${azurerm_public_ip.agw_pip.fqdn}/oauth_callback"

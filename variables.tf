@@ -116,9 +116,31 @@ variable "keycloak_admin_password" {
   }
 }
 
-variable "keycloak_client_secret" {
+variable "keycloak_test_user_username" {
+  type        = string
+  default     = "testuser"
+  description = "Keycloak test user username"
+}
+
+variable "keycloak_test_user_email" {
+  type        = string
+  default     = "test@test.com"
+  description = "Keycloak test user email"
+}
+
+variable "keycloak_test_user_password" {
   type        = string
   sensitive   = true
-  default     = "nrb2E4DKOL7QmShrtTO1O7RERXeKt6UC"
-  description = "Keycloak OIDC client secret for MinIO"
+  default     = "password"
+  description = "Keycloak test user password"
+}
+
+variable "opkssh_redirect_uris" {
+  type        = list(string)
+  default     = [
+    "http://localhost:3000/login-callback",
+    "http://localhost:10001/login-callback",
+    "http://localhost:11110/login-callback"
+  ]
+  description = "OpenPubkey SSH client redirect URIs for local development"
 }
