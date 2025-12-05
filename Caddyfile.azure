@@ -64,8 +64,11 @@
 # --- Keycloak Proxy HTTP (port 8082) ---
 :8082 {
     reverse_proxy localhost:8083 {
-        header_up Host {http.request.header.X-Forwarded-Host}
-        header_up X-Real-IP {http.request.header.X-Forwarded-For}
+        header_up Host {http.request.host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {http.request.host}
     }
 
     log {

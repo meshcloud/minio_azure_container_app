@@ -522,23 +522,25 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     memory_limit = 2.5
 
     environment_variables = {
-      KC_BOOTSTRAP_ADMIN_USERNAME         = var.keycloak_admin_user
-      KC_BOOTSTRAP_ADMIN_PASSWORD         = var.keycloak_admin_password
-      KC_HTTP_ENABLED                     = "true"
-      KC_HOSTNAME_STRICT                  = "false"
-      KC_PROXY_HEADERS                    = "xforwarded"
-      KEYCLOAK_IMPORT                     = "/opt/keycloak/data/import/minio-realm-config.json"
-      KC_DB                               = "mariadb"
-      KC_DB_URL                           = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
-      KC_DB_USERNAME                      = var.mariadb_user
-      KC_DB_PASSWORD                      = random_password.mariadb_password.result
-      KC_HTTP_PORT                        = "8083"
-      KC_HOSTNAME                         = "localhost"
-      KC_HEALTH_ENABLED                   = "true"
-      KC_METRICS_ENABLED                  = "true"
-      KC_HTTP_MANAGEMENT_ENABLED          = "true"
-      KC_HTTP_MANAGEMENT_PORT             = "9090"
-      KC_HTTP_MANAGEMENT_HEALTH_ENABLED   = "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME       = var.keycloak_admin_user
+      KC_BOOTSTRAP_ADMIN_PASSWORD       = var.keycloak_admin_password
+      KC_HTTP_ENABLED                   = "true"
+      KC_HOSTNAME_STRICT                = "false"
+      KC_HOSTNAME_URL                   = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+      KC_HOSTNAME_ADMIN_URL             = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+      KC_PROXY_HEADERS                  = "xforwarded"
+      KC_PROXY                          = "edge"
+      KEYCLOAK_IMPORT                   = "/opt/keycloak/data/import/minio-realm-config.json"
+      KC_DB                             = "mariadb"
+      KC_DB_URL                         = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
+      KC_DB_USERNAME                    = var.mariadb_user
+      KC_DB_PASSWORD                    = random_password.mariadb_password.result
+      KC_HTTP_PORT                      = "8083"
+      KC_HEALTH_ENABLED                 = "true"
+      KC_METRICS_ENABLED                = "true"
+      KC_HTTP_MANAGEMENT_ENABLED        = "true"
+      KC_HTTP_MANAGEMENT_PORT           = "9090"
+      KC_HTTP_MANAGEMENT_HEALTH_ENABLED = "true"
     }
 
     ports {
@@ -566,7 +568,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       read_only  = true
 
       secret = {
-        "minio-realm-config.json" = filebase64("${path.module}/keycloak-minio-docker/minio-realm-config.json")
+        "minio-realm-config.json" = filebase64("${path.module}/minio-realm-config.json")
       }
     }
 
@@ -577,7 +579,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     ]
 
     liveness_probe {
-      exec = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
+      exec                  = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
       initial_delay_seconds = 400
       period_seconds        = 30
       timeout_seconds       = 10
@@ -585,7 +587,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
 
     readiness_probe {
-      exec = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
+      exec                  = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
       initial_delay_seconds = 400
       period_seconds        = 10
       timeout_seconds       = 5
