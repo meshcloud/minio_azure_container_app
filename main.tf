@@ -516,9 +516,9 @@ resource "azurerm_container_group" "minio_aci_container_group" {
   container {
     name         = "keycloak"
     image        = "quay.io/keycloak/keycloak:latest"
-    cpu          = "1.0"
+    cpu          = "1.5"
     memory       = "2.0"
-    cpu_limit    = 1.0
+    cpu_limit    = 2.0
     memory_limit = 2.5
 
     environment_variables = {
@@ -534,6 +534,8 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       KC_DB_PASSWORD              = random_password.mariadb_password.result
       KC_HTTP_PORT                = "8083"
       KC_HOSTNAME                 = "localhost"
+      KC_HEALTH_ENABLED           = "true"
+      KC_METRICS_ENABLED          = "true"
     }
 
     ports {
@@ -641,7 +643,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
         port   = 9000
         scheme = "http"
       }
-      initial_delay_seconds = 200
+      initial_delay_seconds = 300
       period_seconds        = 10
       timeout_seconds       = 5
       failure_threshold     = 3
