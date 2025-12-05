@@ -342,7 +342,7 @@ resource "azurerm_application_gateway" "minio_agw" {
     interval                                  = 30
     timeout                                   = 20
     unhealthy_threshold                       = 3
-    port                                      = 8082
+    port                                      = 9090
     pick_host_name_from_backend_http_settings = false
   }
 
@@ -522,24 +522,32 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     memory_limit = 2.5
 
     environment_variables = {
-      KC_BOOTSTRAP_ADMIN_USERNAME = var.keycloak_admin_user
-      KC_BOOTSTRAP_ADMIN_PASSWORD = var.keycloak_admin_password
-      KC_HTTP_ENABLED             = "true"
-      KC_HOSTNAME_STRICT          = "false"
-      KC_PROXY_HEADERS            = "xforwarded"
-      KEYCLOAK_IMPORT             = "/opt/keycloak/data/import/minio-realm-config.json"
-      KC_DB                       = "mariadb"
-      KC_DB_URL                   = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
-      KC_DB_USERNAME              = var.mariadb_user
-      KC_DB_PASSWORD              = random_password.mariadb_password.result
-      KC_HTTP_PORT                = "8083"
-      KC_HOSTNAME                 = "localhost"
-      KC_HEALTH_ENABLED           = "true"
-      KC_METRICS_ENABLED          = "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME         = var.keycloak_admin_user
+      KC_BOOTSTRAP_ADMIN_PASSWORD         = var.keycloak_admin_password
+      KC_HTTP_ENABLED                     = "true"
+      KC_HOSTNAME_STRICT                  = "false"
+      KC_PROXY_HEADERS                    = "xforwarded"
+      KEYCLOAK_IMPORT                     = "/opt/keycloak/data/import/minio-realm-config.json"
+      KC_DB                               = "mariadb"
+      KC_DB_URL                           = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
+      KC_DB_USERNAME                      = var.mariadb_user
+      KC_DB_PASSWORD                      = random_password.mariadb_password.result
+      KC_HTTP_PORT                        = "8083"
+      KC_HOSTNAME                         = "localhost"
+      KC_HEALTH_ENABLED                   = "true"
+      KC_METRICS_ENABLED                  = "true"
+      KC_HTTP_MANAGEMENT_ENABLED          = "true"
+      KC_HTTP_MANAGEMENT_PORT             = "9090"
+      KC_HTTP_MANAGEMENT_HEALTH_ENABLED   = "true"
     }
 
     ports {
       port     = 8083
+      protocol = "TCP"
+    }
+
+    ports {
+      port     = 9090
       protocol = "TCP"
     }
 
@@ -569,11 +577,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     ]
 
     liveness_probe {
-      http_get {
-        path   = "/health/live"
-        port   = 8083
-        scheme = "http"
-      }
+      exec = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
       initial_delay_seconds = 400
       period_seconds        = 30
       timeout_seconds       = 10
@@ -581,11 +585,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
 
     readiness_probe {
-      http_get {
-        path   = "/health/ready"
-        port   = 8083
-        scheme = "http"
-      }
+      exec = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
       initial_delay_seconds = 400
       period_seconds        = 10
       timeout_seconds       = 5
@@ -640,6 +640,18 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     liveness_probe {
       http_get {
         path   = "/minio/health/live"
+        port   = 9000
+        scheme = "http"
+      }
+      initial_delay_seconds = 300
+      period_seconds        = 10
+      timeout_seconds       = 5
+      failure_threshold     = 3
+    }
+
+    readiness_probe {
+      http_get {
+        path   = "/minio/health/ready"
         port   = 9000
         scheme = "http"
       }
