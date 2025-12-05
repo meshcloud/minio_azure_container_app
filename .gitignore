@@ -85,3 +85,7 @@ go.work.sum
 *.pem
 *.crt
 *.key
+
+# Docker compose - Azure-specific opkssh config (contains FQDNs)
+docker-compose/opk-providers-azure/providers
+docker-compose/opk-auth_id-azure/auth_id

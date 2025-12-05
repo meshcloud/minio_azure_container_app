@@ -51,7 +51,6 @@ variable "storage_account_name" {
   }
 }
 
-
 variable "public_url_domain_name" {
   type        = string
   description = "Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io')"
@@ -136,8 +135,8 @@ variable "keycloak_test_user_password" {
 }
 
 variable "opkssh_redirect_uris" {
-  type        = list(string)
-  default     = [
+  type = list(string)
+  default = [
     "http://localhost:3000/login-callback",
     "http://localhost:10001/login-callback",
     "http://localhost:11110/login-callback"

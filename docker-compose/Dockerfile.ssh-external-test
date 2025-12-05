@@ -26,8 +26,19 @@ RUN mkdir /var/run/sshd && \
 
 RUN mkdir -p /etc/opk /home/testuser/.opk && \
     chown testuser:testuser /home/testuser/.opk && \
-    chmod 700 /home/testuser/.opk
+    chmod 700 /home/testuser/.opk && \
+    chmod 755 /etc/opk
+
+COPY opk-providers-azure/providers /etc/opk/providers
+COPY opk-auth_id-azure/auth_id /etc/opk/auth_id
+
+RUN chown root:opksshuser /etc/opk/providers /etc/opk/auth_id && \
+    chmod 640 /etc/opk/providers /etc/opk/auth_id
+
+RUN touch /var/log/opkssh.log && \
+    chown root:opksshuser /var/log/opkssh.log && \
+    chmod 660 /var/log/opkssh.log
 
 EXPOSE 2222
 
-CMD ["/usr/sbin/sshd", "-D", "-p", "2222"]
+CMD /usr/sbin/sshd -D -p 2222

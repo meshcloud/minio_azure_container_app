@@ -12,6 +12,10 @@ for i in {1..30}; do
     sleep 1
 done
 
+# Fix opk file permissions
+chown opksshuser:opksshuser /etc/opk/providers /etc/opk/auth_id
+chmod 640 /etc/opk/providers /etc/opk/auth_id
+
 # Start socat to proxy localhost:8443 to coraza-waf:8443
 socat TCP-LISTEN:8443,bind=127.0.0.1,fork,reuseaddr TCP:coraza-waf:8443 &
 

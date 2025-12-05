@@ -11,11 +11,11 @@ resource "random_password" "mariadb_password" {
 }
 
 resource "random_password" "keycloak_client_secret" {
-  length           = 32
-  special          = false
-  upper            = true
-  lower            = true
-  numeric          = true
+  length  = 32
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
 }
 
 resource "azurerm_virtual_network" "minio_vnet" {
@@ -580,12 +580,12 @@ resource "azurerm_container_group" "minio_aci_container_group" {
 
       secret = {
         "minio-realm-config.json" = base64encode(templatefile("${path.module}/minio-realm-config.json.tpl", {
-          fqdn                  = azurerm_public_ip.agw_pip.fqdn
-          minio_client_secret   = random_password.keycloak_client_secret.result
-          test_user_username    = var.keycloak_test_user_username
-          test_user_email       = var.keycloak_test_user_email
-          test_user_password    = var.keycloak_test_user_password
-          opkssh_redirect_uris  = jsonencode(var.opkssh_redirect_uris)
+          fqdn                 = azurerm_public_ip.agw_pip.fqdn
+          minio_client_secret  = random_password.keycloak_client_secret.result
+          test_user_username   = var.keycloak_test_user_username
+          test_user_email      = var.keycloak_test_user_email
+          test_user_password   = var.keycloak_test_user_password
+          opkssh_redirect_uris = jsonencode(var.opkssh_redirect_uris)
         }))
       }
     }
@@ -632,7 +632,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       MINIO_ROOT_USER                     = var.minio_root_user
       MINIO_ROOT_PASSWORD                 = var.minio_root_password
       MINIO_BROWSER_REDIRECT_URL          = "https://${azurerm_public_ip.agw_pip.fqdn}"
-      MINIO_IDENTITY_OPENID_CONFIG_URL    = "http://localhost:8083/realms/minio_realm/.well-known/openid-configuration"
+      MINIO_IDENTITY_OPENID_CONFIG_URL    = "https://${azurerm_public_ip.agw_pip.fqdn}:8444/realms/minio_realm/.well-known/openid-configuration"
       MINIO_IDENTITY_OPENID_CLIENT_ID     = "minio-client"
       MINIO_IDENTITY_OPENID_CLIENT_SECRET = random_password.keycloak_client_secret.result
       MINIO_IDENTITY_OPENID_CLAIM_NAME    = "policy"

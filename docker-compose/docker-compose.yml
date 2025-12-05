@@ -34,7 +34,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./keycloak-minio-docker/minio-realm-config.json:/opt/keycloak/data/import/minio-realm-config.json
+      - ./minio-realm-config.json:/opt/keycloak/data/import/minio-realm-config.json
       - keycloak-data:/opt/keycloak/data
     command: ["start", "--import-realm"]
     depends_on:
@@ -73,7 +73,7 @@ services:
     container_name: coraza-waf
     user: root
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile.local:/etc/caddy/Caddyfile
       - caddy-data:/data
     ports:
       - "8080:8080"
@@ -97,6 +97,8 @@ services:
       - "localhost:host-gateway"
     volumes:
       - caddy-data:/caddy-data:ro
+      - ./opk-providers-local/providers:/etc/opk/providers:ro
+      - ./opk-auth_id-local/auth_id:/etc/opk/auth_id:ro
     depends_on:
       - keycloak
       - coraza-waf
