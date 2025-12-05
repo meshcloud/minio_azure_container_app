@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
 RUN wget -qO /usr/local/bin/opkssh https://github.com/openpubkey/opkssh/releases/latest/download/opkssh-linux-amd64 && \
     chmod +x /usr/local/bin/opkssh
 
+COPY minio-cert.pem /usr/local/share/ca-certificates/minio-cert.crt
+RUN update-ca-certificates
+
 RUN groupadd --system opksshuser && \
     useradd -r -M -s /sbin/nologin -g opksshuser opksshuser
 

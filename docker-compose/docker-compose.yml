@@ -1,15 +1,16 @@
 version: '3.8'
 
 services:
-  postgres-db:
-    image: postgres:16-alpine
-    container_name: postgres-db
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-keycloakdb}
-      POSTGRES_USER: ${POSTGRES_USER:-psuser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pspassword}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-keycloakdb}
+      MARIADB_USER: ${MARIADB_USER:-psuser}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-pspassword}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-pspassword}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mariadb_data:/var/lib/mysql
     networks:
       - minio-net
 
@@ -26,10 +27,10 @@ services:
       KC_HOSTNAME_STRICT: false
       KC_PROXY_HEADERS: xforwarded
       KEYCLOAK_IMPORT: /opt/keycloak/data/import/realm-config.json
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres-db/${POSTGRES_DB:-keycloakdb}
-      KC_DB_USERNAME: ${POSTGRES_USER:-psuser}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-pspassword}
+      KC_DB: mariadb
+      KC_DB_URL: jdbc:mariadb://mariadb:3306/${MARIADB_DATABASE:-keycloakdb}
+      KC_DB_USERNAME: ${MARIADB_USER:-psuser}
+      KC_DB_PASSWORD: ${MARIADB_PASSWORD:-pspassword}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -37,7 +38,7 @@ services:
       - keycloak-data:/opt/keycloak/data
     command: ["start", "--import-realm"]
     depends_on:
-      - postgres-db
+      - mariadb
     networks:
       - minio-net
 
@@ -104,7 +105,7 @@ services:
 
 volumes:
   minio-data:
-  postgres_data:
+  mariadb_data:
   keycloak-data:
   caddy-data:
 

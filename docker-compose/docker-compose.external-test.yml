@@ -9,8 +9,8 @@ services:
     ports:
       - "2223:2222"
     volumes:
-      - ./opk-providers-azure:/etc/opk/providers:ro
-      - ./opk-auth_id-azure:/etc/opk/auth_id:ro
+      - ./opk-providers-azure/providers:/etc/opk/providers:ro
+      - ./opk-auth_id-azure/auth_id:/etc/opk/auth_id:ro
     networks:
       - external-test-net
 
