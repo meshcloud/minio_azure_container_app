@@ -527,7 +527,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       KC_HTTP_ENABLED             = "true"
       KC_HOSTNAME_STRICT          = "false"
       KC_PROXY_HEADERS            = "xforwarded"
-      KEYCLOAK_IMPORT             = "/opt/keycloak/data/import/realm-config.json"
+      KEYCLOAK_IMPORT             = "/opt/keycloak/data/import/minio-realm-config.json"
       KC_DB                       = "mariadb"
       KC_DB_URL                   = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
       KC_DB_USERNAME              = var.mariadb_user
@@ -542,6 +542,15 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
 
     volume {
+      name                 = "keycloak-data"
+      mount_path           = "/opt/keycloak/data"
+      read_only            = false
+      storage_account_name = azurerm_storage_account.minio_storage_account.name
+      storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
+      share_name           = azurerm_storage_share.keycloak_share.name
+    }
+
+    volume {
       name       = "keycloak-realm-config"
       mount_path = "/opt/keycloak/data/import"
       read_only  = true
@@ -549,15 +558,6 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       secret = {
         "minio-realm-config.json" = filebase64("${path.module}/keycloak-minio-docker/minio-realm-config.json")
       }
-    }
-
-    volume {
-      name                 = "keycloak-data"
-      mount_path           = "/opt/keycloak/data"
-      read_only            = false
-      storage_account_name = azurerm_storage_account.minio_storage_account.name
-      storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
-      share_name           = azurerm_storage_share.keycloak_share.name
     }
 
     commands = [
@@ -630,14 +630,18 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     security {
       privilege_enabled = true
     }
-    commands = ["minio", "server", "/data", "--console-address", ":9001", "--address", ":9000"]
+    commands = [
+      "/bin/sh",
+      "-c",
+      "until timeout 1 sh -c 'cat < /dev/null > /dev/tcp/localhost/8083' 2>/dev/null; do echo 'Waiting for Keycloak...'; sleep 2; done && minio server /data --console-address :9001 --address :9000"
+    ]
     liveness_probe {
       http_get {
         path   = "/minio/health/live"
         port   = 9000
         scheme = "http"
       }
-      initial_delay_seconds = 30
+      initial_delay_seconds = 200
       period_seconds        = 10
       timeout_seconds       = 5
       failure_threshold     = 3
