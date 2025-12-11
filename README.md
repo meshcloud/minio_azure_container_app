@@ -164,7 +164,7 @@ terraform apply
 
 After deployment, Terraform provides:
 - **console_url**: MinIO web console URL
-- **s3_api_url**: MinIO S3 API endpoint  
+- **s3_api_url**: MinIO S3 API endpoint
 - **keycloak_url**: Keycloak admin console
 - **fqdn**: Fully qualified domain name
 - **mc_alias_command**: MinIO client configuration command
@@ -317,7 +317,7 @@ No modules.
 | <a name="input_minio_root_password"></a> [minio\_root\_password](#input\_minio\_root\_password) | MinIO root password for admin access | `string` | n/a | yes |
 | <a name="input_minio_root_user"></a> [minio\_root\_user](#input\_minio\_root\_user) | MinIO root username for admin access | `string` | `"minioadmin"` | no |
 | <a name="input_nginx_image"></a> [nginx\_image](#input\_nginx\_image) | Nginx container image | `string` | `"mcr.microsoft.com/azurelinux/base/nginx:1.25"` | no |
-| <a name="input_opkssh_redirect_uris"></a> [opkssh\_redirect\_uris](#input\_opkssh\_redirect\_uris) | OpenPubkey SSH client redirect URIs for local development | `list(string)` | <pre>[<br/>  "http://localhost:3000/login-callback",<br/>  "http://localhost:10001/login-callback",<br/>  "http://localhost:11110/login-callback"<br/>]</pre> | no |
+| <a name="input_opkssh_redirect_uris"></a> [opkssh\_redirect\_uris](#input\_opkssh\_redirect\_uris) | OpenPubkey SSH client redirect URIs for local development | `list(string)` | <pre>[<br>  "http://localhost:3000/login-callback",<br>  "http://localhost:10001/login-callback",<br>  "http://localhost:11110/login-callback"<br>]</pre> | no |
 | <a name="input_public_url_domain_name"></a> [public\_url\_domain\_name](#input\_public\_url\_domain\_name) | Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io') | `string` | n/a | yes |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Name of the Resource Group where you want to deploy MinIO | `string` | n/a | yes |
 | <a name="input_storage_account_name"></a> [storage\_account\_name](#input\_storage\_account\_name) | Storage Account Name prefix (random suffix will be added for global uniqueness) | `string` | `"miniostorage"` | no |
