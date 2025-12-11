@@ -8,7 +8,7 @@ outputs: {}
 runs:
   using: "composite"
   steps:
-    - uses: nixbuild/nix-quick-install-action@v26
+    - uses: nixbuild/nix-quick-install-action@v34
       with:
         # gh actions runners have 16 GiB of memory by default, we happily trade some of that for a significant speedup
         # of nix install (empirically this cut install times from from 75s to 30s when introduced)
