@@ -1,7 +1,7 @@
 # Multi-stage build for Coraza-Caddy WAF
 
 # --- Versions ---
-ARG CADDY_VERSION=2.8
+ARG CADDY_VERSION=2.9
 ARG CORAZA_VERSION=v2.0.0
 
 # --- Build stage ---
@@ -25,8 +25,8 @@ RUN addgroup -g 1001 -S caddy && \
     adduser -u 1001 -S caddy -G caddy
 
 # Create directories with proper permissions
-RUN mkdir -p /etc/caddy /var/lib/caddy /var/log/caddy && \
-    chown -R caddy:caddy /etc/caddy /var/lib/caddy /var/log/caddy
+RUN mkdir -p /etc/caddy /var/lib/caddy /var/log/caddy /data/caddy && \
+    chown -R caddy:caddy /etc/caddy /var/lib/caddy /var/log/caddy /data/caddy
 
 # Copy Caddyfile template
 COPY Caddyfile /etc/caddy/Caddyfile
