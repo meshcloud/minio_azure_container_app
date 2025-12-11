@@ -80,3 +80,12 @@ helpers/foundation-deployer/.steps.json
 
 # Go multi-module workspace sum
 go.work.sum
+
+# Certificate files
+*.pem
+*.crt
+*.key
+
+# Docker compose - Azure-specific opkssh config (contains FQDNs)
+docker-compose/opk-providers-azure/providers
+docker-compose/opk-auth_id-azure/auth_id

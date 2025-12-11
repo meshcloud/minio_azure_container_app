@@ -1,0 +1,44 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    wget \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget -qO /usr/local/bin/opkssh https://github.com/openpubkey/opkssh/releases/latest/download/opkssh-linux-amd64 && \
+    chmod +x /usr/local/bin/opkssh
+
+COPY minio-cert.pem /usr/local/share/ca-certificates/minio-cert.crt
+RUN update-ca-certificates
+
+RUN groupadd --system opksshuser && \
+    useradd -r -M -s /sbin/nologin -g opksshuser opksshuser
+
+RUN useradd -m -s /bin/bash testuser && \
+    echo 'testuser:password' | chpasswd
+
+RUN mkdir /var/run/sshd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    echo "AuthorizedKeysCommand /usr/local/bin/opkssh verify %u %k %t" >> /etc/ssh/sshd_config && \
+    echo "AuthorizedKeysCommandUser opksshuser" >> /etc/ssh/sshd_config
+
+RUN mkdir -p /etc/opk /home/testuser/.opk && \
+    chown testuser:testuser /home/testuser/.opk && \
+    chmod 700 /home/testuser/.opk && \
+    chmod 755 /etc/opk
+
+COPY opk-providers-azure/providers /etc/opk/providers
+COPY opk-auth_id-azure/auth_id /etc/opk/auth_id
+
+RUN chown root:opksshuser /etc/opk/providers /etc/opk/auth_id && \
+    chmod 640 /etc/opk/providers /etc/opk/auth_id
+
+RUN touch /var/log/opkssh.log && \
+    chown root:opksshuser /var/log/opkssh.log && \
+    chmod 660 /var/log/opkssh.log
+
+EXPOSE 2222
+
+CMD /usr/sbin/sshd -D -p 2222

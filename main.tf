@@ -4,6 +4,20 @@ resource "random_string" "storage_suffix" {
   upper   = false
 }
 
+resource "random_password" "mariadb_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "random_password" "keycloak_client_secret" {
+  length  = 32
+  special = false
+  upper   = true
+  lower   = true
+  numeric = true
+}
+
 resource "azurerm_virtual_network" "minio_vnet" {
   name                = "minio-vnet"
   address_space       = ["10.10.0.0/16"]
@@ -71,6 +85,18 @@ resource "azurerm_storage_share" "minio_share" {
   quota              = var.storage_share_size
 }
 
+resource "azurerm_storage_share" "mariadb_share" {
+  name               = "mariadbstorageshare"
+  storage_account_id = azurerm_storage_account.minio_storage_account.id
+  quota              = 10
+}
+
+resource "azurerm_storage_share" "keycloak_share" {
+  name               = "keycloakstorageshare"
+  storage_account_id = azurerm_storage_account.minio_storage_account.id
+  quota              = 10
+}
+
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "minio_kv" {
@@ -114,6 +140,9 @@ resource "azurerm_key_vault_certificate" "minio_cert" {
       validity_in_months = 12
       key_usage          = ["digitalSignature", "keyEncipherment", "keyAgreement", "dataEncipherment", "keyCertSign"]
 
+      subject_alternative_names {
+        dns_names = [azurerm_public_ip.agw_pip.fqdn]
+      }
     }
   }
   depends_on = [azurerm_key_vault_access_policy.minio_cert_policy]
@@ -178,6 +207,21 @@ resource "azurerm_network_security_rule" "allow_https_api" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "8443"
+  source_address_prefix       = local.allowed_ips_list[count.index]
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.minio_rg.name
+  network_security_group_name = azurerm_network_security_group.agw_nsg.name
+}
+
+resource "azurerm_network_security_rule" "allow_https_keycloak" {
+  count                       = length(local.allowed_ips_list)
+  name                        = "AllowHTTPS-Keycloak-${count.index}"
+  priority                    = 250 + count.index
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "8444"
   source_address_prefix       = local.allowed_ips_list[count.index]
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.minio_rg.name
@@ -262,6 +306,11 @@ resource "azurerm_application_gateway" "minio_agw" {
     port = 8443
   }
 
+  frontend_port {
+    name = "https-keycloak"
+    port = 8444
+  }
+
   ssl_certificate {
     name                = "minio-cert"
     key_vault_secret_id = azurerm_key_vault_certificate.minio_cert.secret_id
@@ -296,6 +345,18 @@ resource "azurerm_application_gateway" "minio_agw" {
     pick_host_name_from_backend_http_settings = false
   }
 
+  probe {
+    name                                      = "keycloak-health-probe"
+    protocol                                  = "Http"
+    path                                      = "/health/ready"
+    host                                      = azurerm_container_group.minio_aci_container_group.ip_address
+    interval                                  = 30
+    timeout                                   = 20
+    unhealthy_threshold                       = 3
+    port                                      = 9090
+    pick_host_name_from_backend_http_settings = false
+  }
+
   backend_http_settings {
     name                                = "ui-http"
     port                                = 8080
@@ -327,6 +388,21 @@ resource "azurerm_application_gateway" "minio_agw" {
 
   }
 
+  backend_http_settings {
+    name                                = "keycloak-http"
+    port                                = 8082
+    protocol                            = "Http"
+    request_timeout                     = 300
+    pick_host_name_from_backend_address = false
+    cookie_based_affinity               = "Disabled"
+    probe_name                          = "keycloak-health-probe"
+    connection_draining {
+      enabled           = true
+      drain_timeout_sec = 300
+    }
+
+  }
+
   http_listener {
     name                           = "listener-ui"
     frontend_ip_configuration_name = "public-ip"
@@ -339,6 +415,14 @@ resource "azurerm_application_gateway" "minio_agw" {
     name                           = "listener-api"
     frontend_ip_configuration_name = "public-ip"
     frontend_port_name             = "https-api"
+    protocol                       = "Https"
+    ssl_certificate_name           = "minio-cert"
+  }
+
+  http_listener {
+    name                           = "listener-keycloak"
+    frontend_ip_configuration_name = "public-ip"
+    frontend_port_name             = "https-keycloak"
     protocol                       = "Https"
     ssl_certificate_name           = "minio-cert"
   }
@@ -359,6 +443,15 @@ resource "azurerm_application_gateway" "minio_agw" {
     backend_address_pool_name  = "coraza-backend-pool"
     backend_http_settings_name = "api-http"
     priority                   = 20
+  }
+
+  request_routing_rule {
+    name                       = "rule-keycloak"
+    rule_type                  = "Basic"
+    http_listener_name         = "listener-keycloak"
+    backend_address_pool_name  = "coraza-backend-pool"
+    backend_http_settings_name = "keycloak-http"
+    priority                   = 30
   }
 
   identity {
@@ -389,6 +482,138 @@ resource "azurerm_container_group" "minio_aci_container_group" {
   }
 
   container {
+    name         = "mariadb"
+    image        = "mariadb:11"
+    cpu          = "0.5"
+    memory       = "1.0"
+    cpu_limit    = 1.0
+    memory_limit = 1.5
+
+    environment_variables = {
+      MARIADB_USER          = var.mariadb_user
+      MARIADB_PASSWORD      = random_password.mariadb_password.result
+      MARIADB_DATABASE      = var.mariadb_database
+      MARIADB_ROOT_PASSWORD = random_password.mariadb_password.result
+    }
+
+    ports {
+      port     = 3306
+      protocol = "TCP"
+    }
+
+    volume {
+      name                 = "mariadb-data"
+      mount_path           = "/var/lib/mysql"
+      read_only            = false
+      storage_account_name = azurerm_storage_account.minio_storage_account.name
+      storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
+      share_name           = azurerm_storage_share.mariadb_share.name
+    }
+
+    security {
+      privilege_enabled = true
+    }
+
+    liveness_probe {
+      exec = ["/bin/sh", "-c", "mariadb -u root -p$MARIADB_ROOT_PASSWORD -e 'SELECT 1'"]
+
+      initial_delay_seconds = 30
+      period_seconds        = 10
+      timeout_seconds       = 5
+      failure_threshold     = 3
+    }
+  }
+
+  container {
+    name         = "keycloak"
+    image        = "quay.io/keycloak/keycloak:latest"
+    cpu          = "1.5"
+    memory       = "2.0"
+    cpu_limit    = 2.0
+    memory_limit = 2.5
+
+    environment_variables = {
+      KC_BOOTSTRAP_ADMIN_USERNAME       = var.keycloak_admin_user
+      KC_BOOTSTRAP_ADMIN_PASSWORD       = var.keycloak_admin_password
+      KC_HTTP_ENABLED                   = "true"
+      KC_HOSTNAME_STRICT                = "false"
+      KC_HOSTNAME_URL                   = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+      KC_HOSTNAME_ADMIN_URL             = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+      KC_PROXY_HEADERS                  = "xforwarded"
+      KC_PROXY                          = "edge"
+      KEYCLOAK_IMPORT                   = "/opt/keycloak/data/import/minio-realm-config.json"
+      KC_DB                             = "mariadb"
+      KC_DB_URL                         = "jdbc:mariadb://localhost:3306/${var.mariadb_database}"
+      KC_DB_USERNAME                    = var.mariadb_user
+      KC_DB_PASSWORD                    = random_password.mariadb_password.result
+      KC_HTTP_PORT                      = "8083"
+      KC_HEALTH_ENABLED                 = "true"
+      KC_METRICS_ENABLED                = "true"
+      KC_HTTP_MANAGEMENT_ENABLED        = "true"
+      KC_HTTP_MANAGEMENT_PORT           = "9090"
+      KC_HTTP_MANAGEMENT_HEALTH_ENABLED = "true"
+    }
+
+    ports {
+      port     = 8083
+      protocol = "TCP"
+    }
+
+    ports {
+      port     = 9090
+      protocol = "TCP"
+    }
+
+    volume {
+      name                 = "keycloak-data"
+      mount_path           = "/opt/keycloak/data"
+      read_only            = false
+      storage_account_name = azurerm_storage_account.minio_storage_account.name
+      storage_account_key  = azurerm_storage_account.minio_storage_account.primary_access_key
+      share_name           = azurerm_storage_share.keycloak_share.name
+    }
+
+    volume {
+      name       = "keycloak-realm-config"
+      mount_path = "/opt/keycloak/data/import"
+      read_only  = true
+
+      secret = {
+        "minio-realm-config.json" = base64encode(templatefile("${path.module}/minio-realm-config.json.tpl", {
+          fqdn                 = azurerm_public_ip.agw_pip.fqdn
+          minio_client_secret  = random_password.keycloak_client_secret.result
+          test_user_username   = var.keycloak_test_user_username
+          test_user_email      = var.keycloak_test_user_email
+          test_user_password   = var.keycloak_test_user_password
+          opkssh_redirect_uris = jsonencode(var.opkssh_redirect_uris)
+        }))
+      }
+    }
+
+    commands = [
+      "/bin/bash",
+      "-c",
+      "until timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/3306' 2>/dev/null; do echo 'Waiting for MariaDB...'; sleep 2; done && /opt/keycloak/bin/kc.sh start --import-realm"
+    ]
+
+    liveness_probe {
+      exec                  = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
+      initial_delay_seconds = 400
+      period_seconds        = 30
+      timeout_seconds       = 10
+      failure_threshold     = 3
+    }
+
+    readiness_probe {
+      exec                  = ["/bin/sh", "-c", "timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/9090' 2>/dev/null"]
+      initial_delay_seconds = 400
+      period_seconds        = 10
+      timeout_seconds       = 5
+      failure_threshold     = 3
+    }
+  }
+
+  container {
     name         = "minio"
     image        = var.minio_image
     cpu          = "0.5"
@@ -404,9 +629,16 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       protocol = "TCP"
     }
     environment_variables = {
-      MINIO_ROOT_USER            = var.minio_root_user
-      MINIO_ROOT_PASSWORD        = var.minio_root_password
-      MINIO_BROWSER_REDIRECT_URL = "https://${azurerm_public_ip.agw_pip.fqdn}"
+      MINIO_ROOT_USER                     = var.minio_root_user
+      MINIO_ROOT_PASSWORD                 = var.minio_root_password
+      MINIO_BROWSER_REDIRECT_URL          = "https://${azurerm_public_ip.agw_pip.fqdn}"
+      MINIO_IDENTITY_OPENID_CONFIG_URL    = "http://localhost:8083/realms/minio_realm/.well-known/openid-configuration"
+      MINIO_IDENTITY_OPENID_CLIENT_ID     = "minio-client"
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET = random_password.keycloak_client_secret.result
+      MINIO_IDENTITY_OPENID_CLAIM_NAME    = "policy"
+      MINIO_IDENTITY_OPENID_SCOPES        = "openid,profile,email"
+      MINIO_IDENTITY_OPENID_REDIRECT_URI  = "https://${azurerm_public_ip.agw_pip.fqdn}/oauth_callback"
+      MINIO_IDENTITY_OPENID_DISPLAY_NAME  = "Login with SSO"
     }
 
     volume {
@@ -420,14 +652,30 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     security {
       privilege_enabled = true
     }
-    commands = ["minio", "server", "/data", "--console-address", ":9001", "--address", ":9000"]
+    commands = [
+      "/bin/sh",
+      "-c",
+      "until timeout 1 sh -c 'cat < /dev/null > /dev/tcp/localhost/8083' 2>/dev/null; do echo 'Waiting for Keycloak...'; sleep 2; done && minio server /data --console-address :9001 --address :9000"
+    ]
     liveness_probe {
       http_get {
         path   = "/minio/health/live"
         port   = 9000
         scheme = "http"
       }
-      initial_delay_seconds = 30
+      initial_delay_seconds = 300
+      period_seconds        = 10
+      timeout_seconds       = 5
+      failure_threshold     = 3
+    }
+
+    readiness_probe {
+      http_get {
+        path   = "/minio/health/ready"
+        port   = 9000
+        scheme = "http"
+      }
+      initial_delay_seconds = 300
       period_seconds        = 10
       timeout_seconds       = 5
       failure_threshold     = 3
@@ -438,7 +686,7 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     name         = "coraza-waf"
     image        = var.coraza_waf_image
     cpu          = "1.0"
-    memory       = "1.0"
+    memory       = "2.0"
     cpu_limit    = 1.0
     memory_limit = 2.0
     ports {
@@ -474,16 +722,16 @@ resource "azurerm_container_group" "minio_aci_container_group" {
     }
     # The Caddyfile is included as part of the container build.
     # If you are testing or want to use a different configuration, you can provide your own
-    # volume {
-    #   name       = "caddyfile"
-    #   mount_path = "/etc/caddy"
-    #   read_only  = true
+    volume {
+      name       = "caddyfile"
+      mount_path = "/etc/caddy"
+      read_only  = true
 
-    #   secret = {
-    #     "Caddyfile" = base64encode(templatefile("${path.module}/Caddyfile.working.tpl", {
-    #     }))
-    #   }
-    # }
+      secret = {
+        "Caddyfile" = base64encode(templatefile("${path.module}/Caddyfile.azure", {
+        }))
+      }
+    }
 
   }
 }

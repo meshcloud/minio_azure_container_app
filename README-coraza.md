@@ -5,7 +5,7 @@ A modern Web Application Firewall built with [Coraza](https://coraza.io) and [Ca
 ## Features
 
 - ✅ **OWASP Core Rule Set v4** - Latest security rules
-- ✅ **Multi-backend routing** - Single WAF protects MinIO UI + API
+- ✅ **Multi-backend routing** - Single WAF protects MinIO UI + API + Keycloak
 - ✅ **Security headers** - Production-ready security configuration
 - ✅ **Health checks** - Built-in monitoring endpoints
 - ✅ **Rate limiting** - API protection against abuse
@@ -28,6 +28,7 @@ docker pull ghcr.io/YOUR_USERNAME/minio_azure_container_app/coraza-caddy:latest
 |----------|---------|-------------|
 | `MINIO_UI_BACKEND` | `localhost:9001` | MinIO Console backend |
 | `MINIO_API_BACKEND` | `localhost:9000` | MinIO S3 API backend |
+| `KEYCLOAK_BACKEND` | `localhost:8083` | Keycloak backend (Azure only) |
 
 ### Basic Usage
 
@@ -46,18 +47,39 @@ docker run -d \
 ```
 Caddy WAF (8080) → MinIO UI (9001)
           (8081) → MinIO API (9000)
+          (8082) → Keycloak (8083) [Azure only]
+          (8443) → Keycloak HTTPS (8083) [Local dev only]
 ```
+
+### Port Mapping
+
+| Port | Service | WAF Enabled | Environment |
+|------|---------|-------------|-------------|
+| 8080 | MinIO UI | ✅ Yes | Both |
+| 8081 | MinIO API | ✅ Yes | Both |
+| 8082 | Keycloak HTTP | ❌ No (proxy only) | Azure |
+| 8443 | Keycloak HTTPS | ❌ No (proxy only) | Local dev |
 
 ### Request Routing
 
+**MinIO UI (port 8080):**
 - **`/`** → MinIO Console (UI)
-- **`/api/*`** → MinIO S3 API
-- **`/s3/*`** → MinIO S3 API (direct bucket access)
+- **`/ws/*`** → WebSocket connections (WAF bypassed)
 - **`/health`** → Health check endpoint
+
+**MinIO API (port 8081):**
+- **All paths** → MinIO S3 API
+- **`/health`** → Health check endpoint
+
+**Keycloak (port 8082/8443):**
+- **All paths** → Keycloak authentication service
 
 ## Security Features
 
-### WAF Protection
+### WAF Protection (MinIO UI & API only)
+
+Keycloak endpoints use simple reverse proxy without WAF to avoid conflicts with authentication flows.
+
 - SQL injection prevention
 - XSS protection
 - Command injection blocking
@@ -86,10 +108,14 @@ env:
     value: "localhost:9001"
   - name: MINIO_API_BACKEND
     value: "localhost:9000"
+  - name: KEYCLOAK_BACKEND
+    value: "localhost:8083"
 ```
 
 ### Health Check
-The container exposes `/health` on port 8080 for health checks.
+The container exposes `/health` endpoints:
+- Port 8080: MinIO UI health check
+- Port 8081: MinIO API health check
 
 ## Development
 
@@ -125,7 +151,11 @@ docker logs minio-waf | jq '.audit'
 
 ### Health Check
 ```bash
+# MinIO UI health check
 curl http://localhost:8080/health
+
+# MinIO API health check
+curl http://localhost:8081/health
 ```
 
 ### WAF Status

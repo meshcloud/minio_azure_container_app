@@ -1,7 +1,7 @@
 # Multi-stage build for Coraza-Caddy WAF
 
 # --- Versions ---
-ARG CADDY_VERSION=2.9
+ARG CADDY_VERSION=2.9.1
 ARG CORAZA_VERSION=v2.0.0
 
 # --- Build stage ---

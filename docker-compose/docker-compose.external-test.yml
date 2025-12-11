@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  ssh-external-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh-external-test
+    container_name: ssh-external-test
+    ports:
+      - "2223:2222"
+    networks:
+      - external-test-net
+
+networks:
+  external-test-net:
+    driver: bridge

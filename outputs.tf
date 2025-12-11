@@ -8,6 +8,11 @@ output "s3_api_url" {
   value       = "https://${azurerm_public_ip.agw_pip.fqdn}:8443"
 }
 
+output "keycloak_url" {
+  description = "Keycloak admin console URL"
+  value       = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+}
+
 output "fqdn" {
   description = "Fully qualified domain name"
   value       = azurerm_public_ip.agw_pip.fqdn
@@ -26,4 +31,23 @@ output "mc_alias_command" {
 output "storage_account_name" {
   description = "Azure Storage Account name"
   value       = azurerm_storage_account.minio_storage_account.name
+}
+
+output "keycloak_client_secret" {
+  description = "Generated Keycloak OIDC client secret for MinIO"
+  value       = random_password.keycloak_client_secret.result
+  sensitive   = true
+}
+
+output "certificate_pem" {
+  description = "Self-signed certificate in PEM format (public cert)"
+  value = format("-----BEGIN CERTIFICATE-----\n%s\n-----END CERTIFICATE-----\n",
+    join("\n", regexall(".{1,64}", azurerm_key_vault_certificate.minio_cert.certificate_data_base64))
+  )
+  sensitive = true
+}
+
+output "certificate_download_command" {
+  description = "Command to download certificate locally"
+  value       = "terraform output -raw certificate_pem > minio-cert.pem"
 }

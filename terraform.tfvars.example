@@ -1,0 +1,35 @@
+# REQUIRED VARIABLES
+resource_group_name      = "minio-production"
+public_url_domain_name   = "minio-prod"
+minio_root_password      = "your-secure-password-change-me"
+keycloak_admin_password  = "your-keycloak-admin-password-change-me"
+
+# NETWORK CONFIGURATION
+location                 = "germanywestcentral"
+allowed_ip_addresses     = "203.0.113.0/32,198.51.100.0/24"
+
+# MINIO CONFIGURATION (Optional - defaults shown)
+# minio_root_user          = "minioadmin"
+# storage_share_size       = 100
+# storage_account_name     = "miniostorage"
+
+# CONTAINER IMAGES (Optional - defaults shown)
+# minio_image              = "quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"
+# coraza_waf_image         = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
+
+# MARIADB CONFIGURATION (Optional - defaults shown)
+# mariadb_database         = "mariadb"
+# mariadb_user             = "keycloak"
+
+# KEYCLOAK CONFIGURATION (Optional - defaults shown)
+# keycloak_admin_user      = "admin"
+# keycloak_test_user_username = "testuser"
+# keycloak_test_user_email = "test@test.com"
+# keycloak_test_user_password = "password"
+
+# OPKSSH CONFIGURATION (Optional - defaults for local dev)
+# opkssh_redirect_uris     = [
+#   "http://localhost:3000/login-callback",
+#   "http://localhost:10001/login-callback",
+#   "http://localhost:11110/login-callback"
+# ]

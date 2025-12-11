@@ -1,0 +1,42 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    wget \
+    curl \
+    ca-certificates \
+    socat \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget -qO /usr/local/bin/opkssh https://github.com/openpubkey/opkssh/releases/latest/download/opkssh-linux-amd64 && \
+    chmod +x /usr/local/bin/opkssh
+
+COPY caddy-root-ca.crt /usr/local/share/ca-certificates/caddy-root-ca.crt
+RUN update-ca-certificates
+
+RUN groupadd --system opksshuser && \
+    useradd -r -M -s /sbin/nologin -g opksshuser opksshuser
+
+RUN useradd -m -s /bin/bash testuser && \
+    echo 'testuser:password' | chpasswd
+
+RUN mkdir /var/run/sshd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    echo "AuthorizedKeysCommand /usr/local/bin/opkssh verify %u %k %t" >> /etc/ssh/sshd_config && \
+    echo "AuthorizedKeysCommandUser opksshuser" >> /etc/ssh/sshd_config
+
+RUN mkdir -p /etc/opk /home/testuser/.opk && \
+    chown testuser:testuser /home/testuser/.opk && \
+    chmod 700 /home/testuser/.opk
+
+RUN echo '# Issuer Client-ID expiration-policy\nhttps://localhost:8443/realms/minio_realm opkssh-client 24h' > /etc/opk/providers && \
+    echo '# principal email/sub issuer\ntestuser test@test.com https://localhost:8443/realms/minio_realm' > /etc/opk/auth_id && \
+    chown opksshuser:opksshuser /etc/opk/providers /etc/opk/auth_id && \
+    chmod 640 /etc/opk/providers /etc/opk/auth_id
+
+EXPOSE 2222
+
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-keycloakdb}
+      MARIADB_USER: ${MARIADB_USER:-psuser}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-pspassword}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-pspassword}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - minio-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_app
+    user: root
+    restart: always
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD:-admin}
+      KC_HTTP_ENABLED: 'true'
+      KC_HTTP_PORT: '8083'
+      KC_HOSTNAME_STRICT: false
+      KC_PROXY_HEADERS: xforwarded
+      KEYCLOAK_IMPORT: /opt/keycloak/data/import/realm-config.json
+      KC_DB: mariadb
+      KC_DB_URL: jdbc:mariadb://mariadb:3306/${MARIADB_DATABASE:-keycloakdb}
+      KC_DB_USERNAME: ${MARIADB_USER:-psuser}
+      KC_DB_PASSWORD: ${MARIADB_PASSWORD:-pspassword}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./minio-realm-config.json:/opt/keycloak/data/import/minio-realm-config.json
+      - keycloak-data:/opt/keycloak/data
+    command: ["start", "--import-realm"]
+    depends_on:
+      - mariadb
+    networks:
+      - minio-net
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: minio
+    command: server /data --console-address ":9001" --address ":9000"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_IDENTITY_OPENID_CONFIG_URL: http://coraza-waf:8082/realms/minio_realm/.well-known/openid-configuration
+      MINIO_IDENTITY_OPENID_CLIENT_ID: minio-client
+      MINIO_IDENTITY_OPENID_CLIENT_SECRET: nrb2E4DKOL7QmShrtTO1O7RERXeKt6UC
+      MINIO_IDENTITY_OPENID_CLAIM_NAME: "policy"
+      MINIO_IDENTITY_OPENID_SCOPES: openid,profile,email
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:8080
+      MINIO_IDENTITY_OPENID_REDIRECT_URI: http://localhost:8080/oauth_callback
+      MINIO_IDENTITY_OPENID_DISPLAY_NAME: "Login with SSO"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:172.18.0.1"
+    volumes:
+      - minio-data:/data
+    depends_on:
+      - keycloak
+    restart: unless-stopped
+    networks:
+      - minio-net
+
+  coraza-waf:
+    image: coraza-waf-local:latest
+    container_name: coraza-waf
+    user: root
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile
+      - caddy-data:/data
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
+      - "8443:8443"
+    depends_on:
+      - minio
+      - keycloak
+    networks:
+      - minio-net
+
+  ssh-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh-server
+    container_name: ssh-test-server
+    ports:
+      - "2222:2222"
+    extra_hosts:
+      - "localhost:host-gateway"
+    volumes:
+      - caddy-data:/caddy-data:ro
+      - ./opk-providers-local/providers:/etc/opk/providers:ro
+      - ./opk-auth_id-local/auth_id:/etc/opk/auth_id:ro
+    depends_on:
+      - keycloak
+      - coraza-waf
+    networks:
+      - minio-net
+
+volumes:
+  minio-data:
+  mariadb_data:
+  keycloak-data:
+  caddy-data:
+
+networks:
+  minio-net:
+    driver: bridge
