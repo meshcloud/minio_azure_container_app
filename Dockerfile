@@ -11,6 +11,7 @@ ENV CORAZA_VERSION=${CORAZA_VERSION}
 
 RUN xcaddy build \
     --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
+    --with github.com/caddyserver/replace-response
 
 # --- Runtime stage ---
 FROM caddy:${CADDY_VERSION}-alpine
