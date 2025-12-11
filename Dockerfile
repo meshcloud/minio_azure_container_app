@@ -10,7 +10,7 @@ ARG CORAZA_VERSION
 ENV CORAZA_VERSION=${CORAZA_VERSION}
 
 RUN xcaddy build \
-    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION}
+    --with github.com/corazawaf/coraza-caddy@${CORAZA_VERSION} \
     --with github.com/caddyserver/replace-response
 
 # --- Runtime stage ---
