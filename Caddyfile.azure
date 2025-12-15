@@ -73,10 +73,6 @@
         header_up Accept-Encoding identity
     }
 
-    replace {
-        "http://localhost:8083" "https://testminio.germanywestcentral.cloudapp.azure.com:8444"
-    }
-
     log {
         output stdout
         format json
