@@ -536,9 +536,8 @@ resource "azurerm_container_group" "minio_aci_container_group" {
       KC_BOOTSTRAP_ADMIN_USERNAME       = var.keycloak_admin_user
       KC_BOOTSTRAP_ADMIN_PASSWORD       = var.keycloak_admin_password
       KC_HTTP_ENABLED                   = "true"
-      KC_HOSTNAME_STRICT                = "false"
-      KC_HOSTNAME_URL                   = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
-      KC_HOSTNAME_ADMIN_URL             = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+      KC_HOSTNAME                       = "https://${azurerm_public_ip.agw_pip.fqdn}:8444"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC   = "true"
       KC_PROXY_HEADERS                  = "xforwarded"
       KC_PROXY                          = "edge"
       KEYCLOAK_IMPORT                   = "/opt/keycloak/data/import/minio-realm-config.json"

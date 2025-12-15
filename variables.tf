@@ -70,7 +70,7 @@ variable "nginx_image" {
 
 variable "coraza_waf_image" {
   type        = string
-  default     = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.8-coraza-v2.0.0"
+  default     = "ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.9.1-coraza-v2.0.0"
   description = "Coraza WAF container image"
 }
 
