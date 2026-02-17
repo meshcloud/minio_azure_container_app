@@ -15,6 +15,9 @@
         awscli2
         (azure-cli.withExtensions [ azure-cli.extensions.account ])
         nodejs
+        kind
+        kubectl
+        kubernetes-helm
       ];
 
     # core packages required in CI and not preinstalled in github actions

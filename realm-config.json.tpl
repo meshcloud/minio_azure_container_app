@@ -1,6 +1,14 @@
 {
-  "realm": "minio_realm",
+  "realm": "seaweedfs",
   "enabled": true,
+  "groups": [
+    {
+      "name": "admins"
+    },
+    {
+      "name": "developers"
+    }
+  ],
   "users": [
     {
       "username": "${test_user_username}",
@@ -16,30 +24,30 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "readonly"
+      "groups": [
+        "developers"
       ]
     }
   ],
   "clients": [
     {
-      "clientId": "minio-client",
-      "name": "MinIO OIDC Client",
-      "secret": "${minio_client_secret}",
+      "clientId": "seaweedfs-client",
+      "name": "SeaweedFS OIDC Client",
+      "secret": "${client_secret}",
       "enabled": true,
       "protocol": "openid-connect",
       "clientAuthenticatorType": "client-secret",
       "publicClient": false,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "standardFlowEnabled": true,
-      "rootUrl": "https://${fqdn}",
+      "rootUrl": "http://${fqdn}",
       "redirectUris": [
-        "https://${fqdn}/oauth_callback"
+        "http://${fqdn}/*"
       ],
       "webOrigins": [
-        "https://${fqdn}"
+        "http://${fqdn}"
       ],
       "defaultClientScopes": [
         "openid",
@@ -51,29 +59,19 @@
       ],
       "protocolMappers": [
         {
-          "name": "realm-role-mapper",
+          "name": "groups-mapper",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "protocolMapper": "oidc-group-membership-mapper",
           "consentRequired": false,
           "config": {
+            "full.path": "false",
             "introspection.token.claim": "true",
             "multivalued": "true",
             "userinfo.token.claim": "true",
             "id.token.claim": "true",
-            "lightweight.claim": "false",
             "access.token.claim": "true",
-            "claim.name": "policy",
+            "claim.name": "groups",
             "jsonType.label": "String"
-          }
-        },
-        {
-          "name": "security-admin-audience-mapper",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "config": {
-            "included.client.audience": "security-admin-console",
-            "id.token.claim": "true",
-            "access.token.claim": "true"
           }
         }
       ]
@@ -96,16 +94,5 @@
         "email"
       ]
     }
-  ],
-  "roles": {
-    "realm": [
-      {
-        "name": "readonly",
-        "description": "This role provides read only access to all buckets",
-        "composite": false,
-        "clientRole": false,
-        "attributes": {}
-      }
-    ]
-  }
+  ]
 }

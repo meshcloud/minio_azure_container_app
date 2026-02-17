@@ -27,16 +27,6 @@ repos:
           - --args=terraform
           - --args=--version ">= 1.0"
 
-      - id: tfupdate
-        name: tfupdate hashicorp/azurerm
-        args:
-          - --args=provider hashicorp/azurerm
-          - --args=--version "4.36.0"
-          - --args=--ignore-path "kit/.*/buildingblocks/.*"
-          - --args=--ignore-path "kit/.*/demos/.*"
-          - --args=--ignore-path "kit/azure/meshplatform-au"
-          - --args=--ignore-path "kit/azure/landingzones/au-cloud-native"
-
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0  # Use the ref you want to point at
@@ -44,9 +34,3 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-merge-conflict
-
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.0
-    hooks:
-      - id: hadolint-docker
-        args: ['--ignore', 'DL3008', '--ignore', 'DL3009', '--ignore', 'DL3018', '--ignore', 'DL3015', '--ignore', 'DL4006', '--ignore', 'DL3025', '--ignore', 'SC2028']

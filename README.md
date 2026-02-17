@@ -1,255 +1,161 @@
-# MinIO Azure Container App
+# SeaweedFS Kubernetes Deployment
 
-This repository provides both **local development** and **Azure production deployment** for MinIO object storage with Keycloak SSO authentication, Coraza WAF protection, and opkssh SSH certificate authentication.
+S3-compatible object storage on Kubernetes (kind) with Keycloak SSO, BunkerWeb WAF, and opkssh SSH certificate authentication.
 
 ---
 
-## 🚀 Quick Start
-
-### Local Development
-For local testing and development:
+## Quick Start
 
 ```bash
-cd docker-compose
-./setup-local.sh
-```
+# Create kind cluster
+kind create cluster --name seaweedfs
 
-See [docker-compose/README.md](docker-compose/README.md) for complete local development documentation.
-
-### Azure Deployment
-For production deployment to Azure:
-
-```bash
+# Deploy
 terraform init
 terraform plan
 terraform apply
 ```
 
-See [Terraform Usage](#terraform-deployment) below for details.
+Services are available at:
+- **S3 API**: `http://s3.localhost`
+- **Keycloak**: `http://auth.localhost`
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 .
-├── docker-compose/           # Local development environment
-│   ├── README.md            # Complete local dev documentation
-│   ├── setup-local.sh       # Automated local setup
-│   └── ...                  # Docker Compose configuration
+├── docker-compose/           # opkssh SSH test environment
+│   ├── README.md
+│   ├── TESTING-OPKSSH.md
+│   └── ...
 │
-├── main.tf                  # Terraform Azure deployment
-├── variables.tf             # Terraform variables
-├── outputs.tf              # Terraform outputs
-└── README.md               # This file
+├── main.tf                   # Random password generation
+├── variables.tf              # All configuration variables
+├── outputs.tf                # Deployment outputs
+├── versions.tf               # Provider version constraints
+├── providers.tf              # Kubernetes + Helm provider config
+├── seaweedfs.tf              # SeaweedFS deployment, services, IAM config
+├── keycloak.tf               # Keycloak deployment, realm import
+├── mariadb.tf                # MariaDB deployment (Keycloak database)
+├── bunkerweb.tf              # BunkerWeb WAF (Helm release)
+├── ingress.tf                # BunkerWeb ingress rules
+├── realm-config.json.tpl     # Keycloak realm template
+├── terraform.tftest.hcl      # Terraform tests
+└── README.md                 # This file
 ```
 
 ---
 
-## 🏗️ Architecture
-
-### Azure Production Architecture
+## Architecture
 
 ```mermaid
 graph TD
     subgraph "Client Access"
-        Client[External Traffic<br/>HTTPS: 443, 8443, 8444<br/>IP Restricted]
+        Client[HTTP Traffic<br/>s3.localhost / auth.localhost<br/>IP Restricted]
     end
 
-    subgraph "Azure Virtual Network"
-        subgraph "Application Gateway Subnet"
-            AppGW[Azure Application Gateway<br/>SSL Termination<br/>Load Balancing]
+    subgraph "Kubernetes Cluster (kind)"
+        subgraph "WAF Layer"
+            BW[BunkerWeb<br/>ModSecurity + Rate Limiting<br/>Ingress Controller]
         end
 
-        subgraph "Container Instances Subnet"
-            subgraph "WAF Layer"
-                WAF[Coraza WAF<br/>Caddy Reverse Proxy<br/>:8080, :8081, :8082]
-            end
+        subgraph "Application Services"
+            SeaweedFS[SeaweedFS<br/>S3 API :8333]
+            Keycloak[Keycloak<br/>OIDC Provider :8080]
+        end
 
-            subgraph "Application Services"
-                MinIO[MinIO Object Storage<br/>UI: :9001<br/>API: :9000]
-                Keycloak[Keycloak<br/>OIDC Provider<br/>:8083]
-            end
-
-            subgraph "Data Layer"
-                DB[(MariaDB<br/>:3306)]
-                MinIOStorage[(Azure File Share<br/>MinIO Data)]
-                KeycloakStorage[(Azure File Share<br/>Keycloak Data)]
-                DBStorage[(Azure File Share<br/>MariaDB Data)]
-            end
+        subgraph "Data Layer"
+            MariaDB[(MariaDB :3306)]
+            SeaweedPVC[(PVC: seaweedfs-data)]
+            MariadbPVC[(PVC: mariadb-data)]
+            KeycloakPVC[(PVC: keycloak-data)]
         end
     end
 
-    Client --> AppGW
-    AppGW --> WAF
-    WAF -->|:8080/:8081| MinIO
-    WAF -->|:8082| Keycloak
-    MinIO --> MinIOStorage
-    MinIO -.OIDC Auth.-> Keycloak
-    Keycloak --> DB
-    Keycloak --> KeycloakStorage
-    DB --> DBStorage
-
-    style Client fill:#e3f2fd
-    style AppGW fill:#fff3e0
-    style WAF fill:#ff9800
-    style MinIO fill:#2196f3
-    style Keycloak fill:#4caf50
-    style DB fill:#607d8b
-    style MinIOStorage fill:#b0bec5
-    style KeycloakStorage fill:#b0bec5
-    style DBStorage fill:#b0bec5
+    Client --> BW
+    BW -->|s3.localhost| SeaweedFS
+    BW -->|auth.localhost| Keycloak
+    SeaweedFS --> SeaweedPVC
+    SeaweedFS -.OIDC Auth.-> Keycloak
+    Keycloak --> MariaDB
+    Keycloak --> KeycloakPVC
+    MariaDB --> MariadbPVC
 ```
 
 ---
 
-## 🧩 Components
+## Components
 
 ### Core Services
-* **MinIO**: S3-compatible object storage with OIDC authentication
-* **Keycloak**: Enterprise identity and access management
-* **MariaDB**: Database backend for Keycloak
-* **Coraza WAF**: OWASP Core Rule Set protection with rate limiting
+- **SeaweedFS**: S3-compatible object storage with OIDC authentication via STS
+- **Keycloak**: Identity and access management (realm: `seaweedfs`)
+- **MariaDB**: Database backend for Keycloak
+- **BunkerWeb**: WAF with ModSecurity, rate limiting, IP whitelisting
 
-### Azure Infrastructure
-* **Application Gateway**: SSL termination, load balancing, IP restrictions (ports 443/8443/8444)
-* **Network Security Group**: IP-based access control
-* **Azure File Shares**: Persistent storage for MinIO, MariaDB, and Keycloak data
-* **Virtual Network**: Network isolation with dedicated subnets
-* **Key Vault**: Secure certificate storage
+### Keycloak Clients
+- **seaweedfs-client**: Confidential client for S3 OIDC/STS authentication
+- **opkssh-client**: Public client for SSH certificate authentication
 
-### Additional Features
-* **opkssh**: SSH certificate-based authentication using OIDC (local development only)
-
----
-
-## 🛠️ Terraform Deployment
-
-### Prerequisites
-
-* Azure Subscription
-* Terraform >= 1.0
-* Azure CLI (logged in)
-
-### Variables
-
-Create a `terraform.tfvars` file from the example:
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
-```
-
-**Minimum required variables:**
-
-```hcl
-resource_group_name      = "minio-production"
-public_url_domain_name   = "minio-prod"
-minio_root_password      = "your-secure-password"
-keycloak_admin_password  = "your-keycloak-admin-password"
-allowed_ip_addresses     = "203.0.113.0/32,198.51.100.0/24"
-```
-
-See `terraform.tfvars.example` for all available options.
-
-### Deployment
-
-```bash
-terraform init
-terraform plan
-terraform apply
-```
-
-### Outputs
-
-After deployment, Terraform provides:
-- **console_url**: MinIO web console URL
-- **s3_api_url**: MinIO S3 API endpoint
-- **keycloak_url**: Keycloak admin console
-- **fqdn**: Fully qualified domain name
-- **mc_alias_command**: MinIO client configuration command
-- **certificate_download_command**: Download self-signed certificate
+### OIDC Role Mapping
+| Keycloak Group | S3 IAM Role | Permissions |
+|----------------|-------------|-------------|
+| `admins` | `S3AdminRole` | Full S3 access |
+| `developers` | `S3WriteRole` | List, Get, Put, Delete |
+| *(default)* | `S3ReadOnlyRole` | List, Get |
 
 ---
 
-## 🌐 Accessing Services (Azure)
+## Accessing Services
 
-### MinIO Web Console
-```
-https://your-domain.azurecontainer.io/
-```
-Login with:
-- **Root credentials**: Configured via `minio_root_user` and `minio_root_password`
-- **SSO**: Click "Login with SSO" for Keycloak authentication
+### SeaweedFS S3 API
 
-### MinIO S3 API
-```
-https://your-domain.azurecontainer.io:8443/
+```bash
+# Configure AWS CLI
+terraform output -raw aws_cli_configure_command | bash
+
+# Use S3
+aws --profile seaweedfs --endpoint-url http://s3.localhost s3 mb s3://my-bucket
+aws --profile seaweedfs --endpoint-url http://s3.localhost s3 ls
 ```
 
 ### Keycloak Admin Console
+
 ```
-https://your-domain.azurecontainer.io:8444/
+http://auth.localhost/admin
 ```
 
-Default realm: `minio_realm`
-- Admin user: `admin` (password from `keycloak_admin_password`)
-- Test user: `testuser` / `test@test.com`
+- Admin: `admin` / configured via `keycloak_admin_password` (default: `admin`)
+- Test user: `testuser` / `password` (member of `developers` group)
+- Realm: `seaweedfs`
 
-### MinIO Client Setup
+### opkssh SSH Testing
 
-```bash
-# Get the setup command from Terraform output
-terraform output -raw mc_alias_command
-
-# Or manually configure
-mc alias set myminio https://your-fqdn.azurecontainer.io:8443 minioadmin your-password
-
-# Download certificate if needed
-terraform output -raw certificate_pem > minio-cert.pem
-```
+See [docker-compose/TESTING-OPKSSH.md](docker-compose/TESTING-OPKSSH.md) for SSH certificate authentication testing.
 
 ---
 
-## 🔒 Security Features
+## Security
 
-### WAF Protection (Coraza + OWASP CRS)
-* OWASP Core Rule Set v4
-* SQL injection prevention
-* XSS protection
-* Command injection blocking
-* Path traversal prevention
-* Rate limiting per source IP
-* Audit logging
+### BunkerWeb WAF
+- ModSecurity with OWASP Core Rule Set
+- Rate limiting (30 req/s default)
+- IP whitelisting via `allowed_ip_addresses`
+- Bad behavior detection
 
-### Infrastructure Security
-* **IP Restrictions**: NSG rules limit access to specified IPs
-* **SSL Termination**: Azure Application Gateway encrypts all traffic
-* **Network Isolation**: Dedicated VNet with subnet segmentation
-* **Internal Communication**: Container-to-container traffic stays within group
-* **Certificate Storage**: Azure Key Vault for SSL certificates
-* **No Direct Access**: MinIO/Keycloak ports not exposed externally
+### Infrastructure
+- All traffic routed through BunkerWeb ingress
+- Internal service communication via ClusterIP services
+- Secrets managed via Kubernetes secrets
+- Passwords auto-generated via `random_password`
 
 ---
 
-## 📦 Azure Resources Created
+## Additional Documentation
 
-* **Application Gateway**: SSL termination, load balancing (ports 443, 8443, 8444)
-* **Virtual Network**: Network isolation with Application Gateway + Container Instance subnets
-* **Network Security Group**: IP-based access restrictions
-* **Container Group**: Hosts MinIO, Keycloak, MariaDB, and Coraza WAF
-* **Storage Account**: Persistent storage backend
-* **Storage Shares**: Separate shares for MinIO, MariaDB, and Keycloak data
-* **Key Vault**: Secure certificate storage
-* **Log Analytics Workspace**: Monitoring and diagnostics
-
----
-
-## 📚 Additional Documentation
-
-- [docker-compose/README.md](docker-compose/README.md) - Complete local development guide
-- [README-coraza.md](README-coraza.md) - Coraza WAF container documentation
-- [Terraform Variables](#inputs) - Complete variable reference below
+- [docker-compose/README.md](docker-compose/README.md) - opkssh SSH test environment
+- [docker-compose/TESTING-OPKSSH.md](docker-compose/TESTING-OPKSSH.md) - SSH certificate testing guide
 
 ---
 
@@ -258,7 +164,9 @@ terraform output -raw certificate_pem > minio-cert.pem
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | 4.36.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6.0 |
+| <a name="requirement_helm"></a> [helm](#requirement\_helm) | ~> 2.17 |
+| <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | ~> 2.35 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.1 |
 
 ## Modules
@@ -269,72 +177,62 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [azurerm_application_gateway.minio_agw](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/application_gateway) | resource |
-| [azurerm_container_group.minio_aci_container_group](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/container_group) | resource |
-| [azurerm_key_vault.minio_kv](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault) | resource |
-| [azurerm_key_vault_access_policy.agw_policy](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
-| [azurerm_key_vault_access_policy.minio_cert_policy](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_access_policy) | resource |
-| [azurerm_key_vault_certificate.minio_cert](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/key_vault_certificate) | resource |
-| [azurerm_log_analytics_workspace.minio_law](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/log_analytics_workspace) | resource |
-| [azurerm_network_security_group.agw_nsg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_group) | resource |
-| [azurerm_network_security_rule.allow_agw_management](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_rule) | resource |
-| [azurerm_network_security_rule.allow_azureloadbalancer](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_rule) | resource |
-| [azurerm_network_security_rule.allow_https_api](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_rule) | resource |
-| [azurerm_network_security_rule.allow_https_keycloak](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_rule) | resource |
-| [azurerm_network_security_rule.allow_https_ui](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_rule) | resource |
-| [azurerm_network_security_rule.deny_all](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/network_security_rule) | resource |
-| [azurerm_public_ip.agw_pip](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/public_ip) | resource |
-| [azurerm_resource_group.minio_rg](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/resource_group) | resource |
-| [azurerm_storage_account.minio_storage_account](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_account) | resource |
-| [azurerm_storage_share.keycloak_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
-| [azurerm_storage_share.mariadb_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
-| [azurerm_storage_share.minio_share](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/storage_share) | resource |
-| [azurerm_subnet.aci_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/subnet) | resource |
-| [azurerm_subnet.agw_subnet](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/subnet) | resource |
-| [azurerm_subnet_network_security_group_association.agw_nsg_association](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/subnet_network_security_group_association) | resource |
-| [azurerm_user_assigned_identity.agw_identity](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/user_assigned_identity) | resource |
-| [azurerm_virtual_network.minio_vnet](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/resources/virtual_network) | resource |
+| [helm_release.bunkerweb](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
+| [kubernetes_config_map.keycloak_realm](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/config_map) | resource |
+| [kubernetes_deployment.keycloak](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/deployment) | resource |
+| [kubernetes_deployment.mariadb](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/deployment) | resource |
+| [kubernetes_deployment.seaweedfs](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/deployment) | resource |
+| [kubernetes_ingress_v1.keycloak](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/ingress_v1) | resource |
+| [kubernetes_ingress_v1.seaweedfs](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/ingress_v1) | resource |
+| [kubernetes_persistent_volume_claim.keycloak](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/persistent_volume_claim) | resource |
+| [kubernetes_persistent_volume_claim.mariadb](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/persistent_volume_claim) | resource |
+| [kubernetes_persistent_volume_claim.seaweedfs](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/persistent_volume_claim) | resource |
+| [kubernetes_secret.keycloak](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
+| [kubernetes_secret.mariadb](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
+| [kubernetes_secret.seaweedfs_iam](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret) | resource |
+| [kubernetes_service.keycloak](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service) | resource |
+| [kubernetes_service.mariadb](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service) | resource |
+| [kubernetes_service.seaweedfs_master](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service) | resource |
+| [kubernetes_service.seaweedfs_s3](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service) | resource |
 | [random_password.keycloak_client_secret](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [random_password.mariadb_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
-| [random_string.storage_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
-| [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/4.36.0/docs/data-sources/client_config) | data source |
+| [random_password.seaweedfs_sts_signing_key](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_allowed_ip_addresses"></a> [allowed\_ip\_addresses](#input\_allowed\_ip\_addresses) | Comma-separated list of IP addresses that will be allowed to access the MinIO service in CIDR format. Example: '203.0.113.0/32' for a single IP or '10.10.10.2/32,192.168.1.0/24' for multiple IPs. | `string` | `"10.10.10.2/32"` | no |
-| <a name="input_coraza_waf_image"></a> [coraza\_waf\_image](#input\_coraza\_waf\_image) | Coraza WAF container image | `string` | `"ghcr.io/meshcloud/minio_azure_container_app/coraza-caddy:caddy-2.9.1-coraza-v2.0.0"` | no |
-| <a name="input_keycloak_admin_password"></a> [keycloak\_admin\_password](#input\_keycloak\_admin\_password) | Keycloak admin password | `string` | n/a | yes |
+| <a name="input_allowed_ip_addresses"></a> [allowed\_ip\_addresses](#input\_allowed\_ip\_addresses) | Comma-separated CIDR list for BunkerWeb IP whitelist | `string` | `"0.0.0.0/0"` | no |
+| <a name="input_bunkerweb_version"></a> [bunkerweb\_version](#input\_bunkerweb\_version) | BunkerWeb Helm chart version | `string` | `"1.6.1"` | no |
+| <a name="input_keycloak_admin_password"></a> [keycloak\_admin\_password](#input\_keycloak\_admin\_password) | Keycloak admin password | `string` | `"admin"` | no |
 | <a name="input_keycloak_admin_user"></a> [keycloak\_admin\_user](#input\_keycloak\_admin\_user) | Keycloak admin username | `string` | `"admin"` | no |
+| <a name="input_keycloak_domain"></a> [keycloak\_domain](#input\_keycloak\_domain) | Domain for Keycloak | `string` | `"auth.localhost"` | no |
+| <a name="input_keycloak_image"></a> [keycloak\_image](#input\_keycloak\_image) | Keycloak container image | `string` | `"quay.io/keycloak/keycloak:latest"` | no |
+| <a name="input_keycloak_storage_size"></a> [keycloak\_storage\_size](#input\_keycloak\_storage\_size) | PVC size for Keycloak data | `string` | `"1Gi"` | no |
 | <a name="input_keycloak_test_user_email"></a> [keycloak\_test\_user\_email](#input\_keycloak\_test\_user\_email) | Keycloak test user email | `string` | `"test@test.com"` | no |
 | <a name="input_keycloak_test_user_password"></a> [keycloak\_test\_user\_password](#input\_keycloak\_test\_user\_password) | Keycloak test user password | `string` | `"password"` | no |
 | <a name="input_keycloak_test_user_username"></a> [keycloak\_test\_user\_username](#input\_keycloak\_test\_user\_username) | Keycloak test user username | `string` | `"testuser"` | no |
-| <a name="input_location"></a> [location](#input\_location) | Azure region for deployment | `string` | `"germanywestcentral"` | no |
-| <a name="input_mariadb_database"></a> [mariadb\_database](#input\_mariadb\_database) | MariaDB database name for Keycloak | `string` | `"mariadb"` | no |
+| <a name="input_kubeconfig_context"></a> [kubeconfig\_context](#input\_kubeconfig\_context) | Kubeconfig context to use | `string` | `"kind-seaweedfs"` | no |
+| <a name="input_kubeconfig_path"></a> [kubeconfig\_path](#input\_kubeconfig\_path) | Path to kubeconfig file | `string` | `"~/.kube/config"` | no |
+| <a name="input_mariadb_database"></a> [mariadb\_database](#input\_mariadb\_database) | MariaDB database name for Keycloak | `string` | `"keycloakdb"` | no |
+| <a name="input_mariadb_image"></a> [mariadb\_image](#input\_mariadb\_image) | MariaDB container image | `string` | `"mariadb:11"` | no |
+| <a name="input_mariadb_storage_size"></a> [mariadb\_storage\_size](#input\_mariadb\_storage\_size) | PVC size for MariaDB data | `string` | `"1Gi"` | no |
 | <a name="input_mariadb_user"></a> [mariadb\_user](#input\_mariadb\_user) | MariaDB username | `string` | `"keycloak"` | no |
-| <a name="input_minio_image"></a> [minio\_image](#input\_minio\_image) | MinIO container image | `string` | `"quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z"` | no |
-| <a name="input_minio_root_password"></a> [minio\_root\_password](#input\_minio\_root\_password) | MinIO root password for admin access | `string` | n/a | yes |
-| <a name="input_minio_root_user"></a> [minio\_root\_user](#input\_minio\_root\_user) | MinIO root username for admin access | `string` | `"minioadmin"` | no |
-| <a name="input_nginx_image"></a> [nginx\_image](#input\_nginx\_image) | Nginx container image | `string` | `"mcr.microsoft.com/azurelinux/base/nginx:1.25"` | no |
-| <a name="input_opkssh_redirect_uris"></a> [opkssh\_redirect\_uris](#input\_opkssh\_redirect\_uris) | OpenPubkey SSH client redirect URIs for local development | `list(string)` | <pre>[<br>  "http://localhost:3000/login-callback",<br>  "http://localhost:10001/login-callback",<br>  "http://localhost:11110/login-callback"<br>]</pre> | no |
-| <a name="input_public_url_domain_name"></a> [public\_url\_domain\_name](#input\_public\_url\_domain\_name) | Domain name for the public URL (e.g., 'miniotest' creates 'miniotest.westeurope.azurecontainer.io') | `string` | n/a | yes |
-| <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Name of the Resource Group where you want to deploy MinIO | `string` | n/a | yes |
-| <a name="input_storage_account_name"></a> [storage\_account\_name](#input\_storage\_account\_name) | Storage Account Name prefix (random suffix will be added for global uniqueness) | `string` | `"miniostorage"` | no |
-| <a name="input_storage_share_size"></a> [storage\_share\_size](#input\_storage\_share\_size) | Storage space needed in GBs (minimum 1GB, maximum 5120GB/5TB) | `number` | `100` | no |
+| <a name="input_namespace"></a> [namespace](#input\_namespace) | Kubernetes namespace for all resources | `string` | `"default"` | no |
+| <a name="input_opkssh_redirect_uris"></a> [opkssh\_redirect\_uris](#input\_opkssh\_redirect\_uris) | OpenPubkey SSH client redirect URIs | `list(string)` | <pre>[<br>  "http://localhost:3000/login-callback",<br>  "http://localhost:10001/login-callback",<br>  "http://localhost:11110/login-callback"<br>]</pre> | no |
+| <a name="input_seaweedfs_domain"></a> [seaweedfs\_domain](#input\_seaweedfs\_domain) | Domain for SeaweedFS S3 API | `string` | `"s3.localhost"` | no |
+| <a name="input_seaweedfs_image"></a> [seaweedfs\_image](#input\_seaweedfs\_image) | SeaweedFS container image | `string` | `"chrislusf/seaweedfs:latest"` | no |
+| <a name="input_seaweedfs_storage_size"></a> [seaweedfs\_storage\_size](#input\_seaweedfs\_storage\_size) | PVC size for SeaweedFS data | `string` | `"10Gi"` | no |
+| <a name="input_storage_class_name"></a> [storage\_class\_name](#input\_storage\_class\_name) | StorageClass for PVCs (kind uses 'standard' by default) | `string` | `"standard"` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_certificate_download_command"></a> [certificate\_download\_command](#output\_certificate\_download\_command) | Command to download certificate locally |
-| <a name="output_certificate_pem"></a> [certificate\_pem](#output\_certificate\_pem) | Self-signed certificate in PEM format (public cert) |
-| <a name="output_console_url"></a> [console\_url](#output\_console\_url) | MinIO Web Console URL |
-| <a name="output_fqdn"></a> [fqdn](#output\_fqdn) | Fully qualified domain name |
-| <a name="output_keycloak_client_secret"></a> [keycloak\_client\_secret](#output\_keycloak\_client\_secret) | Generated Keycloak OIDC client secret for MinIO |
-| <a name="output_keycloak_url"></a> [keycloak\_url](#output\_keycloak\_url) | Keycloak admin console URL |
-| <a name="output_mc_alias_command"></a> [mc\_alias\_command](#output\_mc\_alias\_command) | MinIO client setup command |
-| <a name="output_public_ip"></a> [public\_ip](#output\_public\_ip) | Public IP address |
-| <a name="output_s3_api_url"></a> [s3\_api\_url](#output\_s3\_api\_url) | MinIO S3 API endpoint |
-| <a name="output_storage_account_name"></a> [storage\_account\_name](#output\_storage\_account\_name) | Azure Storage Account name |
+| <a name="output_aws_cli_configure_command"></a> [aws\_cli\_configure\_command](#output\_aws\_cli\_configure\_command) | Command to configure AWS CLI for SeaweedFS S3 |
+| <a name="output_keycloak_admin_console_url"></a> [keycloak\_admin\_console\_url](#output\_keycloak\_admin\_console\_url) | Keycloak admin console URL |
+| <a name="output_keycloak_client_secret"></a> [keycloak\_client\_secret](#output\_keycloak\_client\_secret) | Generated Keycloak OIDC client secret for SeaweedFS |
+| <a name="output_keycloak_url"></a> [keycloak\_url](#output\_keycloak\_url) | Keycloak URL |
+| <a name="output_mariadb_password"></a> [mariadb\_password](#output\_mariadb\_password) | Generated MariaDB password |
+| <a name="output_s3_api_url"></a> [s3\_api\_url](#output\_s3\_api\_url) | SeaweedFS S3 API endpoint (via BunkerWeb ingress) |
 <!-- END_TF_DOCS -->

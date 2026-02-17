@@ -1,1 +1,1 @@
-https://localhost:8443/realms/minio_realm opkssh-client 24h
+http://auth.localhost/realms/seaweedfs opkssh-client 24h

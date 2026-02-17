@@ -1,0 +1,84 @@
+resource "kubernetes_ingress_v1" "seaweedfs" {
+  metadata {
+    name      = "seaweedfs"
+    namespace = var.namespace
+
+    annotations = {
+      "bunkerweb.io/USE_MODSECURITY"        = "yes"
+      "bunkerweb.io/USE_LIMIT_REQ"          = "yes"
+      "bunkerweb.io/LIMIT_REQ_URL"          = "/"
+      "bunkerweb.io/LIMIT_REQ_RATE"         = "30r/s"
+      "bunkerweb.io/WHITELIST_IP"           = var.allowed_ip_addresses
+      "bunkerweb.io/USE_BAD_BEHAVIOR"       = "yes"
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS" = "no"
+    }
+  }
+
+  spec {
+    ingress_class_name = "bunkerweb"
+
+    rule {
+      host = var.seaweedfs_domain
+
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = kubernetes_service.seaweedfs_s3.metadata[0].name
+
+              port {
+                number = 8333
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.bunkerweb]
+}
+
+resource "kubernetes_ingress_v1" "keycloak" {
+  metadata {
+    name      = "keycloak"
+    namespace = var.namespace
+
+    annotations = {
+      "bunkerweb.io/USE_MODSECURITY"        = "yes"
+      "bunkerweb.io/USE_ANTIBOT"            = "cookie"
+      "bunkerweb.io/USE_BAD_BEHAVIOR"       = "yes"
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS" = "no"
+    }
+  }
+
+  spec {
+    ingress_class_name = "bunkerweb"
+
+    rule {
+      host = var.keycloak_domain
+
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+
+          backend {
+            service {
+              name = kubernetes_service.keycloak.metadata[0].name
+
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.bunkerweb]
+}
