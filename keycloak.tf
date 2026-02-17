@@ -10,7 +10,7 @@ resource "kubernetes_config_map" "keycloak_realm" {
       client_secret        = random_password.keycloak_client_secret.result
       test_user_username   = var.keycloak_test_user_username
       test_user_email      = var.keycloak_test_user_email
-      test_user_password   = var.keycloak_test_user_password
+      test_user_password   = random_password.keycloak_test_user_password.result
       opkssh_redirect_uris = jsonencode(var.opkssh_redirect_uris)
     })
   }
@@ -253,7 +253,7 @@ resource "kubernetes_secret" "keycloak" {
   }
 
   data = {
-    "admin-password" = var.keycloak_admin_password
+    "admin-password" = random_password.keycloak_admin_password.result
     "client-secret"  = random_password.keycloak_client_secret.result
   }
 }

@@ -84,15 +84,8 @@ variable "mariadb_user" {
 
 variable "keycloak_admin_user" {
   type        = string
-  default     = "KeycloakAdmin123!"
-  description = "Keycloak admin username"
-}
-
-variable "keycloak_admin_password" {
-  type        = string
-  sensitive   = true
   default     = "admin"
-  description = "Keycloak admin password"
+  description = "Keycloak admin username"
 }
 
 variable "keycloak_test_user_username" {
@@ -105,13 +98,6 @@ variable "keycloak_test_user_email" {
   type        = string
   default     = "test@test.com"
   description = "Keycloak test user email"
-}
-
-variable "keycloak_test_user_password" {
-  type        = string
-  sensitive   = true
-  default     = "password"
-  description = "Keycloak test user password"
 }
 
 variable "opkssh_redirect_uris" {
