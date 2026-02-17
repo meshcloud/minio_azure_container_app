@@ -1,50 +1,91 @@
 # SeaweedFS Kubernetes Deployment
 
-S3-compatible object storage on Kubernetes (kind) with Keycloak SSO, BunkerWeb WAF, and opkssh SSH certificate authentication.
+S3-compatible object storage on Kubernetes (kind) with OIDC authentication (Keycloak), WAF protection (BunkerWeb), and opkssh SSH certificate authentication.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Create kind cluster
 kind create cluster --name seaweedfs
-
-# Deploy
 terraform init
-terraform plan
 terraform apply
 ```
 
-Services are available at:
-- **S3 API**: `http://s3.localhost`
-- **Keycloak**: `http://auth.localhost`
+### Local Testing Prerequisites
+
+Port-forwards are needed for local access (kind doesn't expose ports 80/443 by default):
+
+```bash
+# Terminal 1: BunkerWeb (auth.localhost + s3.localhost via Host header)
+kubectl port-forward svc/bunkerweb-external 8080:80
+
+# Terminal 2: SeaweedFS direct (needed for AWS CLI, which can't send custom Host headers)
+kubectl port-forward svc/seaweedfs-s3 18333:8333
+```
+
+Services are then available at:
+- **S3 API**: `http://s3.localhost` (via BunkerWeb) or `http://localhost:18333` (direct)
+- **Keycloak**: `http://auth.localhost` (via BunkerWeb)
+- **Keycloak Admin**: `http://auth.localhost/admin` — `admin` / `admin`
+- **Test User**: `testuser` / `password` (member of `developers` group)
 
 ---
 
-## Repository Structure
+## S3 Authentication Flow
 
+SeaweedFS uses OIDC-based STS (Security Token Service) for S3 access. The flow is:
+
+1. Authenticate with Keycloak to get an **ID token**
+2. Exchange the ID token for **temporary S3 credentials** via STS `AssumeRoleWithWebIdentity`
+3. Use the S3 credentials with the AWS CLI (or any S3 client)
+
+### Manual Testing
+
+```bash
+# 1. Get client secret
+CLIENT_SECRET=$(kubectl get secret keycloak-credentials -o jsonpath='{.data.client-secret}' | base64 -d)
+
+# 2. Get ID token from Keycloak
+ID_TOKEN=$(curl -s -X POST \
+  -H "Host: auth.localhost" \
+  "http://localhost:8080/realms/seaweedfs/protocol/openid-connect/token" \
+  -d "grant_type=password" \
+  -d "client_id=seaweedfs-client" \
+  -d "client_secret=$CLIENT_SECRET" \
+  -d "username=testuser" \
+  -d "password=password" \
+  -d "scope=openid" | jq -r '.id_token')
+
+# 3. Exchange ID token for STS credentials
+STS_RESULT=$(curl -s "http://localhost:8080" \
+  -H "Host: s3.localhost" \
+  --data-urlencode "Action=AssumeRoleWithWebIdentity" \
+  --data-urlencode "WebIdentityToken=$ID_TOKEN" \
+  --data-urlencode "RoleArn=arn:aws:iam::role/S3WriteRole" \
+  --data-urlencode "RoleSessionName=testuser-session" \
+  --data-urlencode "Version=2011-06-15")
+
+# 4. Export credentials
+export AWS_ACCESS_KEY_ID=$(echo "$STS_RESULT" | xmllint --xpath '//*[local-name()="AccessKeyId"]/text()' -)
+export AWS_SECRET_ACCESS_KEY=$(echo "$STS_RESULT" | xmllint --xpath '//*[local-name()="SecretAccessKey"]/text()' -)
+export AWS_SESSION_TOKEN=$(echo "$STS_RESULT" | xmllint --xpath '//*[local-name()="SessionToken"]/text()' -)
+
+# 5. Use S3
+aws --endpoint-url http://localhost:18333 s3 ls
+aws --endpoint-url http://localhost:18333 s3 mb s3://my-bucket
+aws --endpoint-url http://localhost:18333 s3 cp myfile.txt s3://my-bucket/
 ```
-.
-├── docker-compose/           # opkssh SSH test environment
-│   ├── README.md
-│   ├── TESTING-OPKSSH.md
-│   └── ...
-│
-├── main.tf                   # Random password generation
-├── variables.tf              # All configuration variables
-├── outputs.tf                # Deployment outputs
-├── versions.tf               # Provider version constraints
-├── providers.tf              # Kubernetes + Helm provider config
-├── seaweedfs.tf              # SeaweedFS deployment, services, IAM config
-├── keycloak.tf               # Keycloak deployment, realm import
-├── mariadb.tf                # MariaDB deployment (Keycloak database)
-├── bunkerweb.tf              # BunkerWeb WAF (Helm release)
-├── ingress.tf                # BunkerWeb ingress rules
-├── realm-config.json.tpl     # Keycloak realm template
-├── terraform.tftest.hcl      # Terraform tests
-└── README.md                 # This file
+
+### Automated Test Script
+
+```bash
+./test-s3.sh
 ```
+
+Runs the full flow: token acquisition, STS exchange, bucket create/upload/download/delete.
+
+Requires both port-forwards to be running and `jq`, `xmllint`, and `aws` CLI installed.
 
 ---
 
@@ -84,6 +125,25 @@ graph TD
     MariaDB --> MariadbPVC
 ```
 
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Keycloak
+    participant SeaweedFS
+    participant BunkerWeb
+
+    User->>BunkerWeb: POST /token (username + password)
+    BunkerWeb->>Keycloak: Forward request
+    Keycloak-->>User: ID Token (contains groups claim)
+    User->>BunkerWeb: AssumeRoleWithWebIdentity (ID Token)
+    BunkerWeb->>SeaweedFS: Forward STS request
+    SeaweedFS->>SeaweedFS: Validate token, map groups→role
+    SeaweedFS-->>User: Temporary AccessKeyId + SecretAccessKey + SessionToken
+    User->>SeaweedFS: S3 API calls (signed with STS credentials)
+```
+
 ---
 
 ## Components
@@ -99,40 +159,44 @@ graph TD
 - **opkssh-client**: Public client for SSH certificate authentication
 
 ### OIDC Role Mapping
+
+Keycloak group membership is mapped to SeaweedFS IAM roles via the `groups` claim in the ID token:
+
 | Keycloak Group | S3 IAM Role | Permissions |
 |----------------|-------------|-------------|
-| `admins` | `S3AdminRole` | Full S3 access |
+| `admins` | `S3AdminRole` | Full S3 access (`s3:*`) |
 | `developers` | `S3WriteRole` | List, Get, Put, Delete |
 | *(default)* | `S3ReadOnlyRole` | List, Get |
 
+**Note:** The STS request must use the **ID token** (not the access token), because Keycloak's access tokens omit the `sub` claim that SeaweedFS requires.
+
 ---
 
-## Accessing Services
-
-### SeaweedFS S3 API
-
-```bash
-# Configure AWS CLI
-terraform output -raw aws_cli_configure_command | bash
-
-# Use S3
-aws --profile seaweedfs --endpoint-url http://s3.localhost s3 mb s3://my-bucket
-aws --profile seaweedfs --endpoint-url http://s3.localhost s3 ls
-```
-
-### Keycloak Admin Console
+## Repository Structure
 
 ```
-http://auth.localhost/admin
+.
+├── main.tf                   # Random password generation
+├── variables.tf              # All configuration variables
+├── outputs.tf                # Deployment outputs
+├── versions.tf               # Provider version constraints
+├── providers.tf              # Kubernetes + Helm provider config
+├── seaweedfs.tf              # SeaweedFS deployment, services, IAM config
+├── keycloak.tf               # Keycloak deployment, realm import
+├── mariadb.tf                # MariaDB deployment (Keycloak database)
+├── bunkerweb.tf              # BunkerWeb WAF (Helm release)
+├── ingress.tf                # BunkerWeb ingress rules
+├── realm-config.json.tpl     # Keycloak realm template
+├── test-s3.sh                # S3 authentication + operations test script
+├── terraform.tftest.hcl      # Terraform tests
+│
+├── docker-compose/           # opkssh SSH test environment
+│   ├── README.md
+│   ├── TESTING-OPKSSH.md
+│   └── ...
+│
+└── README.md                 # This file
 ```
-
-- Admin: `admin` / configured via `keycloak_admin_password` (default: `admin`)
-- Test user: `testuser` / `password` (member of `developers` group)
-- Realm: `seaweedfs`
-
-### opkssh SSH Testing
-
-See [docker-compose/TESTING-OPKSSH.md](docker-compose/TESTING-OPKSSH.md) for SSH certificate authentication testing.
 
 ---
 
@@ -143,19 +207,50 @@ See [docker-compose/TESTING-OPKSSH.md](docker-compose/TESTING-OPKSSH.md) for SSH
 - Rate limiting (30 req/s default)
 - IP whitelisting via `allowed_ip_addresses`
 - Bad behavior detection
+- ModSecurity exclusions for S3 and OIDC endpoints (large body uploads, token requests)
 
 ### Infrastructure
 - All traffic routed through BunkerWeb ingress
+- SeaweedFS resolves `auth.localhost` via hostAliases to BunkerWeb's ClusterIP (for internal OIDC discovery)
 - Internal service communication via ClusterIP services
-- Secrets managed via Kubernetes secrets
+- Secrets managed via Kubernetes secrets (client secret, DB password, STS signing key)
 - Passwords auto-generated via `random_password`
+- STS credentials are temporary (token lifetime bound to OIDC token expiry)
 
 ---
 
-## Additional Documentation
+## opkssh SSH Testing
 
-- [docker-compose/README.md](docker-compose/README.md) - opkssh SSH test environment
-- [docker-compose/TESTING-OPKSSH.md](docker-compose/TESTING-OPKSSH.md) - SSH certificate testing guide
+opkssh enables SSH authentication using OIDC identities instead of traditional SSH keys. A Docker Compose test environment is provided for testing SSH certificate authentication against the Kubernetes-hosted Keycloak.
+
+**Status: Not yet tested in the current deployment.** See below for setup instructions.
+
+```bash
+# Install opkssh (macOS)
+brew tap openpubkey/opkssh
+brew install opkssh
+
+# Start SSH test server
+cd docker-compose && ./setup-local.sh
+
+# Login with OIDC
+opkssh login --provider="http://auth.localhost/realms/seaweedfs,opkssh-client"
+
+# SSH to test server
+ssh -p 2222 testuser@localhost
+```
+
+See [docker-compose/README.md](docker-compose/README.md) and [docker-compose/TESTING-OPKSSH.md](docker-compose/TESTING-OPKSSH.md) for the full guide.
+
+---
+
+## Known Local Testing Limitations
+
+- **Port-forwards required** — kind doesn't expose ports 80/443, so `kubectl port-forward` is needed for BunkerWeb (8080) and SeaweedFS (18333)
+- **AWS CLI can't route through BunkerWeb** — the AWS CLI doesn't send custom `Host` headers, so S3 operations must target SeaweedFS directly on port 18333. STS works through BunkerWeb via curl with `-H "Host: s3.localhost"`
+- **ID token lifetime** — Keycloak ID tokens expire after 5 minutes, so STS credentials have a short validity window. Refresh the token before each STS call.
+
+These limitations are specific to local kind testing. In a production deployment with proper DNS and ingress, the AWS CLI would work directly against `s3.yourdomain.com` through BunkerWeb.
 
 ---
 
