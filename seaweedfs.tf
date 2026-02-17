@@ -1,3 +1,12 @@
+data "kubernetes_service" "bunkerweb_external" {
+  metadata {
+    name      = "bunkerweb-external"
+    namespace = var.namespace
+  }
+
+  depends_on = [helm_release.bunkerweb]
+}
+
 resource "kubernetes_secret" "seaweedfs_iam" {
   metadata {
     name      = "seaweedfs-iam-config"
@@ -185,6 +194,11 @@ resource "kubernetes_deployment" "seaweedfs" {
             "/bin/sh", "-c",
             "until nc -z keycloak.${var.namespace}.svc.cluster.local 8080; do echo 'Waiting for Keycloak...'; sleep 2; done"
           ]
+        }
+
+        host_aliases {
+          ip        = data.kubernetes_service.bunkerweb_external.spec[0].cluster_ip
+          hostnames = [var.keycloak_domain, var.seaweedfs_domain]
         }
 
         container {
