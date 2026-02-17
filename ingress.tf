@@ -50,10 +50,16 @@ resource "kubernetes_ingress_v1" "keycloak" {
     annotations = {
       "bunkerweb.io/USE_MODSECURITY"                = "yes"
       "bunkerweb.io/USE_ANTIBOT"                    = "no"
+      "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
       "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "no"
       "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
       "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
+      "bunkerweb.io/COOKIE_AUTO_SECURE_FLAG"        = "no"
+      "bunkerweb.io/COOKIE_FLAGS"                   = "* SameSite=Lax"
+      "bunkerweb.io/STRICT_TRANSPORT_SECURITY"      = ""
+      "bunkerweb.io/KEEP_UPSTREAM_HEADERS"          = "*"
+      "bunkerweb.io/CONTENT_SECURITY_POLICY"        = ""
     }
   }
 
@@ -83,4 +89,20 @@ resource "kubernetes_ingress_v1" "keycloak" {
   }
 
   depends_on = [helm_release.bunkerweb]
+}
+
+resource "kubernetes_config_map" "keycloak_modsec" {
+  metadata {
+    name      = "keycloak-modsec-crs"
+    namespace = var.namespace
+
+    annotations = {
+      "bunkerweb.io/CONFIG_TYPE" = "modsec-crs"
+      "bunkerweb.io/CONFIG_SITE" = var.keycloak_domain
+    }
+  }
+
+  data = {
+    "keycloak-exclusions.conf" = "SecRuleRemoveById 934100-934199\nSecRuleRemoveById 953100\nSecRuleRemoveById 959100"
+  }
 }

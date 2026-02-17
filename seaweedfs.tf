@@ -17,7 +17,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
         type    = "oidc"
         enabled = true
         config = {
-          issuer      = "http://${var.keycloak_domain}:8080/realms/seaweedfs"
+          issuer      = "http://${var.keycloak_domain}/realms/seaweedfs"
           clientId    = "seaweedfs-client"
           jwksUri     = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/certs"
           userInfoUri = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/userinfo"
@@ -79,7 +79,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "http://${var.keycloak_domain}:8080/realms/seaweedfs"
+                  "seaweed:Issuer" = "http://${var.keycloak_domain}/realms/seaweedfs"
                 }
               }
             }]
@@ -97,7 +97,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "http://${var.keycloak_domain}:8080/realms/seaweedfs"
+                  "seaweed:Issuer" = "http://${var.keycloak_domain}/realms/seaweedfs"
                 }
               }
             }]
@@ -115,7 +115,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "http://${var.keycloak_domain}:8080/realms/seaweedfs"
+                  "seaweed:Issuer" = "http://${var.keycloak_domain}/realms/seaweedfs"
                 }
               }
             }]

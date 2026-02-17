@@ -138,7 +138,7 @@ resource "kubernetes_deployment" "keycloak" {
 
           env {
             name  = "KC_HOSTNAME"
-            value = "http://${var.keycloak_domain}:8080"
+            value = "http://${var.keycloak_domain}"
           }
 
           env {

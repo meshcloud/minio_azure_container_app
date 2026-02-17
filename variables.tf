@@ -84,7 +84,7 @@ variable "mariadb_user" {
 
 variable "keycloak_admin_user" {
   type        = string
-  default     = "admin"
+  default     = "KeycloakAdmin123!"
   description = "Keycloak admin username"
 }
 
