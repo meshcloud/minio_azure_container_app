@@ -22,6 +22,8 @@ resource "kubernetes_persistent_volume_claim" "keycloak" {
     namespace = var.namespace
   }
 
+  wait_until_bound = false
+
   spec {
     access_modes       = ["ReadWriteOnce"]
     storage_class_name = var.storage_class_name
@@ -136,7 +138,7 @@ resource "kubernetes_deployment" "keycloak" {
 
           env {
             name  = "KC_HOSTNAME"
-            value = "http://${var.keycloak_domain}"
+            value = "http://${var.keycloak_domain}:8080"
           }
 
           env {

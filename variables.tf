@@ -132,6 +132,6 @@ variable "allowed_ip_addresses" {
 
 variable "bunkerweb_version" {
   type        = string
-  default     = "1.6.1"
+  default     = "1.0.13"
   description = "BunkerWeb Helm chart version"
 }

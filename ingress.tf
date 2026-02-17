@@ -4,13 +4,13 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
     namespace = var.namespace
 
     annotations = {
-      "bunkerweb.io/USE_MODSECURITY"        = "yes"
-      "bunkerweb.io/USE_LIMIT_REQ"          = "yes"
-      "bunkerweb.io/LIMIT_REQ_URL"          = "/"
-      "bunkerweb.io/LIMIT_REQ_RATE"         = "30r/s"
-      "bunkerweb.io/WHITELIST_IP"           = var.allowed_ip_addresses
-      "bunkerweb.io/USE_BAD_BEHAVIOR"       = "yes"
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS" = "no"
+      "bunkerweb.io/USE_MODSECURITY"                = "yes"
+      "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
+      "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "no"
+      "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
+      "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
+      "bunkerweb.io/ALLOWED_METHODS"                = "GET|POST|PUT|DELETE|HEAD|OPTIONS"
     }
   }
 
@@ -48,10 +48,12 @@ resource "kubernetes_ingress_v1" "keycloak" {
     namespace = var.namespace
 
     annotations = {
-      "bunkerweb.io/USE_MODSECURITY"        = "yes"
-      "bunkerweb.io/USE_ANTIBOT"            = "cookie"
-      "bunkerweb.io/USE_BAD_BEHAVIOR"       = "yes"
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS" = "no"
+      "bunkerweb.io/USE_MODSECURITY"                = "yes"
+      "bunkerweb.io/USE_ANTIBOT"                    = "no"
+      "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "no"
+      "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
+      "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
     }
   }
 

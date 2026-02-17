@@ -203,7 +203,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_allowed_ip_addresses"></a> [allowed\_ip\_addresses](#input\_allowed\_ip\_addresses) | Comma-separated CIDR list for BunkerWeb IP whitelist | `string` | `"0.0.0.0/0"` | no |
-| <a name="input_bunkerweb_version"></a> [bunkerweb\_version](#input\_bunkerweb\_version) | BunkerWeb Helm chart version | `string` | `"1.6.1"` | no |
+| <a name="input_bunkerweb_version"></a> [bunkerweb\_version](#input\_bunkerweb\_version) | BunkerWeb Helm chart version | `string` | `"1.0.13"` | no |
 | <a name="input_keycloak_admin_password"></a> [keycloak\_admin\_password](#input\_keycloak\_admin\_password) | Keycloak admin password | `string` | `"admin"` | no |
 | <a name="input_keycloak_admin_user"></a> [keycloak\_admin\_user](#input\_keycloak\_admin\_user) | Keycloak admin username | `string` | `"admin"` | no |
 | <a name="input_keycloak_domain"></a> [keycloak\_domain](#input\_keycloak\_domain) | Domain for Keycloak | `string` | `"auth.localhost"` | no |
