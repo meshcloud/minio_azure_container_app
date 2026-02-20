@@ -4,9 +4,6 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
     namespace = var.namespace
 
     annotations = {
-      # "bunkerweb.io/USE_REAL_IP"                    = "yes"
-      # "bunkerweb.io/REAL_IP_FROM"                   = "0.0.0.0/0"
-      # "bunkerweb.io/REAL_IP_HEADER"                 = "X-Forwarded-For"
       "bunkerweb.io/USE_MODSECURITY"                = "yes"
       "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
@@ -53,10 +50,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
     namespace = var.namespace
 
     annotations = {
-      "bunkerweb.io/USE_REAL_IP"                    = "yes"
-      "bunkerweb.io/REAL_IP_FROM"                   = "0.0.0.0/0"
-      "bunkerweb.io/REAL_IP_HEADER"                 = "X-Forwarded-For"
-      "bunkerweb.io/USE_MODSECURITY"                = "no"
+      "bunkerweb.io/USE_MODSECURITY"                = "yes"
       "bunkerweb.io/USE_ANTIBOT"                    = "no"
       "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
@@ -68,7 +62,6 @@ resource "kubernetes_ingress_v1" "keycloak" {
       "bunkerweb.io/COOKIE_AUTO_SECURE_FLAG"        = "no"
       "bunkerweb.io/COOKIE_FLAGS"                   = ""
       "bunkerweb.io/STRICT_TRANSPORT_SECURITY"      = "max-age=31536000"
-      "bunkerweb.io/KEEP_UPSTREAM_HEADERS"          = "*"
       "bunkerweb.io/CONTENT_SECURITY_POLICY"        = ""
     }
   }
