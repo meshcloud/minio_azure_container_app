@@ -83,7 +83,7 @@ resource "kubernetes_deployment" "keycloak" {
 
           command = [
             "/bin/sh", "-c",
-            "mkdir -p /data/import && cp /realm-config/*.json /data/import/"
+            "mkdir -p /data/import /data/tmp && cp /realm-config/*.json /data/import/ && chown -R 1000:0 /data"
           ]
 
           volume_mount {
@@ -138,7 +138,7 @@ resource "kubernetes_deployment" "keycloak" {
 
           env {
             name  = "KC_HOSTNAME"
-            value = "http://${var.keycloak_domain}"
+            value = "https://${var.keycloak_domain}"
           }
 
           env {
@@ -184,6 +184,11 @@ resource "kubernetes_deployment" "keycloak" {
           env {
             name  = "KC_METRICS_ENABLED"
             value = "true"
+          }
+
+          env {
+            name  = "KC_HOSTNAME_STRICT"
+            value = "false"
           }
 
           env {

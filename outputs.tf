@@ -1,16 +1,16 @@
 output "s3_api_url" {
   description = "SeaweedFS S3 API endpoint (via BunkerWeb ingress)"
-  value       = "http://${var.seaweedfs_domain}"
+  value       = "https://${var.seaweedfs_domain}"
 }
 
 output "keycloak_url" {
   description = "Keycloak URL"
-  value       = "http://${var.keycloak_domain}"
+  value       = "https://${var.keycloak_domain}"
 }
 
 output "keycloak_admin_console_url" {
   description = "Keycloak admin console URL"
-  value       = "http://${var.keycloak_domain}/admin"
+  value       = "https://${var.keycloak_domain}/admin"
 }
 
 output "keycloak_client_secret" {
@@ -39,5 +39,5 @@ output "keycloak_test_user_password" {
 
 output "aws_cli_configure_command" {
   description = "Command to configure AWS CLI for SeaweedFS S3"
-  value       = "aws configure --profile seaweedfs set endpoint_url http://${var.seaweedfs_domain}"
+  value       = "aws configure --profile seaweedfs set endpoint_url https://${var.seaweedfs_domain}"
 }

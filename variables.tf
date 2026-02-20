@@ -116,8 +116,37 @@ variable "allowed_ip_addresses" {
   description = "Comma-separated CIDR list for BunkerWeb IP whitelist"
 }
 
+variable "bunkerweb_service_type" {
+  type        = string
+  default     = "ClusterIP"
+  description = "Service type for BunkerWeb external service (ClusterIP for local, NodePort for cloud with NLB)"
+}
+
+variable "bunkerweb_nodeport_http" {
+  type        = number
+  default     = null
+  description = "NodePort for BunkerWeb HTTP (must match NLB forwarding rule, e.g. 31063)"
+}
+
+variable "bunkerweb_nodeport_https" {
+  type        = number
+  default     = null
+  description = "NodePort for BunkerWeb HTTPS (must match NLB forwarding rule, e.g. 31925)"
+}
+
 variable "bunkerweb_version" {
   type        = string
   default     = "1.0.13"
   description = "BunkerWeb Helm chart version"
+}
+
+variable "email_lets_encrypt" {
+  type        = string
+  description = "Email address used for Let's Encrypt certificate notifications"
+}
+
+variable "bunkerweb_dns_resolvers" {
+  type        = string
+  default     = "kube-dns.kube-system.svc.cluster.local"
+  description = "DNS resolver for BunkerWeb nginx (kube-dns for kind, coredns for IONOS)"
 }

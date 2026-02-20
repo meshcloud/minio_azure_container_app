@@ -4,10 +4,15 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
     namespace = var.namespace
 
     annotations = {
+      # "bunkerweb.io/USE_REAL_IP"                    = "yes"
+      # "bunkerweb.io/REAL_IP_FROM"                   = "0.0.0.0/0"
+      # "bunkerweb.io/REAL_IP_HEADER"                 = "X-Forwarded-For"
       "bunkerweb.io/USE_MODSECURITY"                = "yes"
       "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "no"
+      "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
+      "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "yes"
       "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
       "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
       "bunkerweb.io/ALLOWED_METHODS"                = "GET|POST|PUT|DELETE|HEAD|OPTIONS"
@@ -48,16 +53,21 @@ resource "kubernetes_ingress_v1" "keycloak" {
     namespace = var.namespace
 
     annotations = {
-      "bunkerweb.io/USE_MODSECURITY"                = "yes"
+      "bunkerweb.io/USE_REAL_IP"                    = "yes"
+      "bunkerweb.io/REAL_IP_FROM"                   = "0.0.0.0/0"
+      "bunkerweb.io/REAL_IP_HEADER"                 = "X-Forwarded-For"
+      "bunkerweb.io/USE_MODSECURITY"                = "no"
       "bunkerweb.io/USE_ANTIBOT"                    = "no"
       "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "no"
+      "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
+      "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "yes"
       "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
       "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
       "bunkerweb.io/COOKIE_AUTO_SECURE_FLAG"        = "no"
-      "bunkerweb.io/COOKIE_FLAGS"                   = "* SameSite=Lax"
-      "bunkerweb.io/STRICT_TRANSPORT_SECURITY"      = ""
+      "bunkerweb.io/COOKIE_FLAGS"                   = ""
+      "bunkerweb.io/STRICT_TRANSPORT_SECURITY"      = "max-age=31536000"
       "bunkerweb.io/KEEP_UPSTREAM_HEADERS"          = "*"
       "bunkerweb.io/CONTENT_SECURITY_POLICY"        = ""
     }
@@ -89,6 +99,22 @@ resource "kubernetes_ingress_v1" "keycloak" {
   }
 
   depends_on = [helm_release.bunkerweb]
+}
+
+resource "kubernetes_config_map" "seaweedfs_modsec" {
+  metadata {
+    name      = "seaweedfs-modsec-crs"
+    namespace = var.namespace
+
+    annotations = {
+      "bunkerweb.io/CONFIG_TYPE" = "modsec-crs"
+      "bunkerweb.io/CONFIG_SITE" = var.seaweedfs_domain
+    }
+  }
+
+  data = {
+    "seaweedfs-exclusions.conf" = "SecRuleRemoveById 920340\nSecRuleRemoveById 920420\nSecRuleRemoveById 920450\nSecRuleRemoveById 920640"
+  }
 }
 
 resource "kubernetes_config_map" "keycloak_modsec" {

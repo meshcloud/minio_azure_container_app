@@ -42,12 +42,12 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "standardFlowEnabled": true,
-      "rootUrl": "http://${fqdn}",
+      "rootUrl": "https://${fqdn}",
       "redirectUris": [
-        "http://${fqdn}/*"
+        "https://${fqdn}/*"
       ],
       "webOrigins": [
-        "http://${fqdn}"
+        "https://${fqdn}"
       ],
       "defaultClientScopes": [
         "openid",

@@ -1,3 +1,9 @@
+resource "kubernetes_namespace" "this" {
+  metadata {
+    name = var.namespace
+  }
+}
+
 resource "random_password" "mariadb_password" {
   length           = 16
   special          = true

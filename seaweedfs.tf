@@ -1,12 +1,3 @@
-data "kubernetes_service" "bunkerweb_external" {
-  metadata {
-    name      = "bunkerweb-external"
-    namespace = var.namespace
-  }
-
-  depends_on = [helm_release.bunkerweb]
-}
-
 resource "kubernetes_secret" "seaweedfs_iam" {
   metadata {
     name      = "seaweedfs-iam-config"
@@ -26,7 +17,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
         type    = "oidc"
         enabled = true
         config = {
-          issuer      = "http://${var.keycloak_domain}/realms/seaweedfs"
+          issuer      = "https://${var.keycloak_domain}/realms/seaweedfs"
           clientId    = "seaweedfs-client"
           jwksUri     = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/certs"
           userInfoUri = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/userinfo"
@@ -58,7 +49,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
             Version = "2012-10-17"
             Statement = [{
               Effect   = "Allow"
-              Action   = ["s3:List*", "s3:Get*", "s3:Put*", "s3:DeleteObject"]
+              Action   = ["s3:List*", "s3:Get*", "s3:Put*", "s3:Delete*", "s3:CreateBucket"]
               Resource = ["*"]
             }]
           }
@@ -88,7 +79,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "http://${var.keycloak_domain}/realms/seaweedfs"
+                  "seaweed:Issuer" = "https://${var.keycloak_domain}/realms/seaweedfs"
                 }
               }
             }]
@@ -106,7 +97,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "http://${var.keycloak_domain}/realms/seaweedfs"
+                  "seaweed:Issuer" = "https://${var.keycloak_domain}/realms/seaweedfs"
                 }
               }
             }]
@@ -124,7 +115,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "http://${var.keycloak_domain}/realms/seaweedfs"
+                  "seaweed:Issuer" = "https://${var.keycloak_domain}/realms/seaweedfs"
                 }
               }
             }]
@@ -197,7 +188,7 @@ resource "kubernetes_deployment" "seaweedfs" {
         }
 
         host_aliases {
-          ip        = data.kubernetes_service.bunkerweb_external.spec[0].cluster_ip
+          ip        = kubernetes_service_v1.bunkerweb_external.spec[0].cluster_ip
           hostnames = [var.keycloak_domain, var.seaweedfs_domain]
         }
 
