@@ -187,9 +187,12 @@ resource "kubernetes_deployment" "seaweedfs" {
           ]
         }
 
-        host_aliases {
-          ip        = kubernetes_service_v1.bunkerweb_external.spec[0].cluster_ip
-          hostnames = [var.keycloak_domain, var.seaweedfs_domain]
+        dynamic "host_aliases" {
+          for_each = var.bunkerweb_cluster_ip != null ? [1] : []
+          content {
+            ip        = var.bunkerweb_cluster_ip
+            hostnames = [var.keycloak_domain, var.seaweedfs_domain]
+          }
         }
 
         container {

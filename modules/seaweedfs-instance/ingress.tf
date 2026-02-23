@@ -17,7 +17,7 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
   }
 
   spec {
-    ingress_class_name = "bunkerweb"
+    ingress_class_name = var.ingress_class_name
 
     rule {
       host = var.seaweedfs_domain
@@ -40,8 +40,6 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
       }
     }
   }
-
-  depends_on = [helm_release.bunkerweb]
 }
 
 resource "kubernetes_ingress_v1" "keycloak" {
@@ -67,7 +65,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
   }
 
   spec {
-    ingress_class_name = "bunkerweb"
+    ingress_class_name = var.ingress_class_name
 
     rule {
       host = var.keycloak_domain
@@ -90,8 +88,6 @@ resource "kubernetes_ingress_v1" "keycloak" {
       }
     }
   }
-
-  depends_on = [helm_release.bunkerweb]
 }
 
 resource "kubernetes_config_map" "seaweedfs_modsec" {

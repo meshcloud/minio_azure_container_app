@@ -1,36 +1,25 @@
-resource "kubernetes_namespace" "this" {
-  metadata {
-    name = var.namespace
-  }
-}
+module "seaweedfs" {
+  source = "./modules/seaweedfs-instance"
 
-resource "random_password" "mariadb_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
+  namespace              = var.namespace
+  storage_class_name     = var.storage_class_name
+  seaweedfs_storage_size = var.seaweedfs_storage_size
+  mariadb_storage_size   = var.mariadb_storage_size
+  keycloak_storage_size  = var.keycloak_storage_size
+  seaweedfs_domain       = var.seaweedfs_domain
+  keycloak_domain        = var.keycloak_domain
+  seaweedfs_image        = var.seaweedfs_image
+  keycloak_image         = var.keycloak_image
+  mariadb_image          = var.mariadb_image
+  mariadb_database       = var.mariadb_database
+  mariadb_user           = var.mariadb_user
+  keycloak_admin_user    = var.keycloak_admin_user
+  email_lets_encrypt     = var.email_lets_encrypt
+  allowed_ip_addresses   = var.allowed_ip_addresses
+  ingress_class_name     = "bunkerweb-${var.namespace}"
+  bunkerweb_cluster_ip   = kubernetes_service_v1.bunkerweb_external.spec[0].cluster_ip
 
-resource "random_password" "keycloak_client_secret" {
-  length  = 32
-  special = false
-  upper   = true
-  lower   = true
-  numeric = true
-}
-
-resource "random_password" "seaweedfs_sts_signing_key" {
-  length  = 32
-  special = false
-}
-
-resource "random_password" "keycloak_admin_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-
-resource "random_password" "keycloak_test_user_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  keycloak_test_user_username = var.keycloak_test_user_username
+  keycloak_test_user_email    = var.keycloak_test_user_email
+  opkssh_redirect_uris        = var.opkssh_redirect_uris
 }

@@ -88,3 +88,27 @@ variable "health_check_interval" {
   default     = 2000
   description = "NLB health check interval in milliseconds"
 }
+
+variable "bunkerweb_version" {
+  type        = string
+  default     = "1.0.13"
+  description = "BunkerWeb Helm chart version"
+}
+
+variable "bunkerweb_namespace" {
+  type        = string
+  default     = "bunkerweb"
+  description = "Kubernetes namespace for the shared BunkerWeb deployment"
+}
+
+variable "bunkerweb_dns_resolvers" {
+  type        = string
+  default     = "coredns.kube-system.svc.cluster.local"
+  description = "DNS resolver for BunkerWeb nginx"
+}
+
+variable "bunkerweb_storage_class_name" {
+  type        = string
+  default     = "ionos-enterprise-ssd"
+  description = "StorageClass for BunkerWeb MariaDB and Redis PVCs"
+}

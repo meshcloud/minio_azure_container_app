@@ -1,43 +1,43 @@
 output "s3_api_url" {
   description = "SeaweedFS S3 API endpoint (via BunkerWeb ingress)"
-  value       = module.seaweedfs.s3_api_url
+  value       = "https://${var.seaweedfs_domain}"
 }
 
 output "keycloak_url" {
   description = "Keycloak URL"
-  value       = module.seaweedfs.keycloak_url
+  value       = "https://${var.keycloak_domain}"
 }
 
 output "keycloak_admin_console_url" {
   description = "Keycloak admin console URL"
-  value       = module.seaweedfs.keycloak_admin_console_url
+  value       = "https://${var.keycloak_domain}/admin"
 }
 
 output "keycloak_client_secret" {
   description = "Generated Keycloak OIDC client secret for SeaweedFS"
-  value       = module.seaweedfs.keycloak_client_secret
+  value       = random_password.keycloak_client_secret.result
   sensitive   = true
 }
 
 output "mariadb_password" {
   description = "Generated MariaDB password"
-  value       = module.seaweedfs.mariadb_password
+  value       = random_password.mariadb_password.result
   sensitive   = true
 }
 
 output "keycloak_admin_password" {
   description = "Generated Keycloak admin password"
-  value       = module.seaweedfs.keycloak_admin_password
+  value       = random_password.keycloak_admin_password.result
   sensitive   = true
 }
 
 output "keycloak_test_user_password" {
   description = "Generated Keycloak test user password"
-  value       = module.seaweedfs.keycloak_test_user_password
+  value       = random_password.keycloak_test_user_password.result
   sensitive   = true
 }
 
 output "aws_cli_configure_command" {
   description = "Command to configure AWS CLI for SeaweedFS S3"
-  value       = module.seaweedfs.aws_cli_configure_command
+  value       = "aws configure --profile seaweedfs set endpoint_url https://${var.seaweedfs_domain}"
 }
