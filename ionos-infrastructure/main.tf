@@ -1,10 +1,10 @@
-resource "ionoscloud_datacenter" "main" {
+data "ionoscloud_datacenter" "main" {
   name     = var.datacenter_name
   location = var.location
 }
 
 resource "ionoscloud_lan" "nodepool" {
-  datacenter_id = ionoscloud_datacenter.main.id
+  datacenter_id = data.ionoscloud_datacenter.main.id
   public        = false
   name          = "${var.k8s_cluster_name}-nodepool"
 
@@ -24,7 +24,7 @@ resource "ionoscloud_k8s_cluster" "main" {
 }
 
 resource "ionoscloud_k8s_node_pool" "main" {
-  datacenter_id     = ionoscloud_datacenter.main.id
+  datacenter_id     = data.ionoscloud_datacenter.main.id
   k8s_cluster_id    = ionoscloud_k8s_cluster.main.id
   name              = var.node_pool_name
   k8s_version       = ionoscloud_k8s_cluster.main.k8s_version
@@ -60,7 +60,7 @@ data "ionoscloud_k8s_node_pool_nodes" "main" {
 
 data "ionoscloud_server" "nodes" {
   for_each      = { for node in data.ionoscloud_k8s_node_pool_nodes.main.nodes : node.id => node }
-  datacenter_id = ionoscloud_datacenter.main.id
+  datacenter_id = data.ionoscloud_datacenter.main.id
   id            = each.key
 }
 

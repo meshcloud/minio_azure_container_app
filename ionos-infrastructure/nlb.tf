@@ -5,13 +5,13 @@ resource "ionoscloud_ipblock" "nlb" {
 }
 
 resource "ionoscloud_lan" "nlb_listener" {
-  datacenter_id = ionoscloud_datacenter.main.id
+  datacenter_id = data.ionoscloud_datacenter.main.id
   public        = true
   name          = "${var.k8s_cluster_name}-nlb-listener"
 }
 
 resource "ionoscloud_networkloadbalancer" "main" {
-  datacenter_id = ionoscloud_datacenter.main.id
+  datacenter_id = data.ionoscloud_datacenter.main.id
   name          = "${var.k8s_cluster_name}-nlb"
   listener_lan  = ionoscloud_lan.nlb_listener.id
   target_lan    = ionoscloud_lan.nodepool.id
@@ -19,7 +19,7 @@ resource "ionoscloud_networkloadbalancer" "main" {
 }
 
 resource "ionoscloud_networkloadbalancer_forwardingrule" "http" {
-  datacenter_id          = ionoscloud_datacenter.main.id
+  datacenter_id          = data.ionoscloud_datacenter.main.id
   networkloadbalancer_id = ionoscloud_networkloadbalancer.main.id
   name                   = "http"
   algorithm              = "ROUND_ROBIN"
@@ -48,7 +48,7 @@ resource "ionoscloud_networkloadbalancer_forwardingrule" "http" {
 }
 
 resource "ionoscloud_networkloadbalancer_forwardingrule" "https" {
-  datacenter_id          = ionoscloud_datacenter.main.id
+  datacenter_id          = data.ionoscloud_datacenter.main.id
   networkloadbalancer_id = ionoscloud_networkloadbalancer.main.id
   name                   = "https"
   algorithm              = "ROUND_ROBIN"

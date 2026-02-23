@@ -15,8 +15,6 @@ output "k8s_cluster_id" {
 }
 
 output "datacenter_id" {
-  value       = ionoscloud_datacenter.main.id
+  value       = data.ionoscloud_datacenter.main.id
   description = "Datacenter ID"
 }
-
-
