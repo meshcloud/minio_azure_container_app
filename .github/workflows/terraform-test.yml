@@ -6,6 +6,7 @@ on:
     paths:
       - '*.tf'
       - '*.tftest.hcl'
+      - 'modules/**'
       - '.tflint.hcl'
       - '.pre-commit-config.yaml'
       - '.github/workflows/terraform-test.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - '*.tf'
       - '*.tftest.hcl'
+      - 'modules/**'
       - '.tflint.hcl'
       - '.pre-commit-config.yaml'
   workflow_dispatch:
