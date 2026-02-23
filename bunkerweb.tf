@@ -1,5 +1,5 @@
 resource "helm_release" "bunkerweb" {
-  name             = "bunkerweb"
+  name             = "bunkerweb-${var.namespace}"
   repository       = "https://repo.bunkerweb.io/charts"
   chart            = "bunkerweb"
   version          = var.bunkerweb_version
@@ -28,7 +28,7 @@ resource "helm_release" "bunkerweb" {
       }
 
       misc = {
-        dnsResolvers = var.bunkerweb_dns_resolvers
+        dnsResolvers   = var.bunkerweb_dns_resolvers
         apiWhitelistIp = "127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10"
       }
 
@@ -39,7 +39,7 @@ resource "helm_release" "bunkerweb" {
 
     ingressClass = {
       enabled    = true
-      name       = "bunkerweb"
+      name       = "bunkerweb-${var.namespace}"
       controller = "bunkerweb.io/ingress-controller"
     }
 
@@ -83,7 +83,7 @@ resource "helm_release" "bunkerweb" {
 
 resource "kubernetes_service_v1" "bunkerweb_external" {
   metadata {
-    name      = "bunkerweb-external"
+    name      = "bunkerweb-${var.namespace}"
     namespace = var.namespace
 
     labels = {
