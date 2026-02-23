@@ -1,59 +1,68 @@
-run "plan_local_deployment" {
+run "plan_deployment" {
   command = plan
 
   variables {
     kubeconfig_path    = "~/.kube/config"
     kubeconfig_context = "kind-seaweedfs"
-    email_lets_encrypt = "test@example.com"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_deployment.mariadb.metadata[0].name == "mariadb"
-    error_message = "MariaDB deployment should be named 'mariadb'"
+    condition     = module.team_alpha.kubernetes_deployment.mariadb.metadata[0].name == "mariadb"
+    error_message = "Team Alpha: MariaDB deployment should be named 'mariadb'"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_deployment.keycloak.metadata[0].name == "keycloak"
-    error_message = "Keycloak deployment should be named 'keycloak'"
+    condition     = module.team_alpha.kubernetes_deployment.keycloak.metadata[0].name == "keycloak"
+    error_message = "Team Alpha: Keycloak deployment should be named 'keycloak'"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_deployment.seaweedfs.metadata[0].name == "seaweedfs"
-    error_message = "SeaweedFS deployment should be named 'seaweedfs'"
+    condition     = module.team_alpha.kubernetes_deployment.seaweedfs.metadata[0].name == "seaweedfs"
+    error_message = "Team Alpha: SeaweedFS deployment should be named 'seaweedfs'"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_service.mariadb.spec[0].port[0].port == 3306
-    error_message = "MariaDB service should expose port 3306"
+    condition     = module.team_alpha.kubernetes_service.mariadb.spec[0].port[0].port == 3306
+    error_message = "Team Alpha: MariaDB service should expose port 3306"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_service.seaweedfs_s3.spec[0].port[0].port == 8333
-    error_message = "SeaweedFS S3 service should expose port 8333"
+    condition     = module.team_alpha.kubernetes_service.seaweedfs_s3.spec[0].port[0].port == 8333
+    error_message = "Team Alpha: SeaweedFS S3 service should expose port 8333"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_service.keycloak.spec[0].port[0].port == 8080
-    error_message = "Keycloak service should expose port 8080"
+    condition     = module.team_alpha.kubernetes_service.keycloak.spec[0].port[0].port == 8080
+    error_message = "Team Alpha: Keycloak service should expose port 8080"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_ingress_v1.seaweedfs.spec[0].ingress_class_name == "bunkerweb-default"
-    error_message = "SeaweedFS ingress should use bunkerweb-default ingress class"
+    condition     = module.team_alpha.kubernetes_ingress_v1.seaweedfs.spec[0].ingress_class_name == "bunkerweb"
+    error_message = "Team Alpha: SeaweedFS ingress should use bunkerweb ingress class"
   }
 
   assert {
-    condition     = module.seaweedfs.kubernetes_ingress_v1.keycloak.spec[0].ingress_class_name == "bunkerweb-default"
-    error_message = "Keycloak ingress should use bunkerweb-default ingress class"
+    condition     = module.team_alpha.kubernetes_ingress_v1.keycloak.spec[0].ingress_class_name == "bunkerweb"
+    error_message = "Team Alpha: Keycloak ingress should use bunkerweb ingress class"
   }
 
   assert {
-    condition     = output.s3_api_url == "https://s3.localhost"
-    error_message = "S3 API URL should default to https://s3.localhost"
+    condition     = output.team_alpha_s3_api_url == "https://seaweedfs.ionos.meshcloud.io"
+    error_message = "Team Alpha: S3 API URL should be https://seaweedfs.ionos.meshcloud.io"
   }
 
   assert {
-    condition     = output.keycloak_url == "https://auth.localhost"
-    error_message = "Keycloak URL should default to https://auth.localhost"
+    condition     = output.team_alpha_keycloak_url == "https://keycloak.ionos.meshcloud.io"
+    error_message = "Team Alpha: Keycloak URL should be https://keycloak.ionos.meshcloud.io"
+  }
+
+  assert {
+    condition     = output.team_beta_s3_api_url == "https://seaweedfs2.ionos.meshcloud.io"
+    error_message = "Team Beta: S3 API URL should be https://seaweedfs2.ionos.meshcloud.io"
+  }
+
+  assert {
+    condition     = output.team_beta_keycloak_url == "https://keycloak2.ionos.meshcloud.io"
+    error_message = "Team Beta: Keycloak URL should be https://keycloak2.ionos.meshcloud.io"
   }
 }

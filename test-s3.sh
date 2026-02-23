@@ -7,10 +7,10 @@ SEAWEEDFS_DOMAIN="${SEAWEEDFS_DOMAIN:-seaweedfs.ionos.meshcloud.io}"
 KEYCLOAK_URL="https://${KEYCLOAK_DOMAIN}"
 S3_ENDPOINT="https://${SEAWEEDFS_DOMAIN}"
 
-CLIENT_SECRET=$(terraform output -raw keycloak_client_secret)
+CLIENT_SECRET=$(terraform output -raw team_alpha_keycloak_client_secret)
 echo "Got client secret"
 
-TEST_PASSWORD=$(terraform output -raw keycloak_test_user_password)
+TEST_PASSWORD=$(terraform output -raw team_alpha_keycloak_test_user_password)
 
 ID_TOKEN=$(curl -s -X POST \
   "${KEYCLOAK_URL}/realms/seaweedfs/protocol/openid-connect/token" \
