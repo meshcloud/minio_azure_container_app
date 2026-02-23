@@ -26,8 +26,8 @@ RUN mkdir -p /etc/opk /home/testuser/.opk && \
     chmod 700 /home/testuser/.opk && \
     chmod 755 /etc/opk
 
-COPY opk-providers-azure/providers /etc/opk/providers
-COPY opk-auth_id-azure/auth_id /etc/opk/auth_id
+COPY opk-providers/providers /etc/opk/providers
+COPY opk-auth-id/auth_id /etc/opk/auth_id
 
 RUN chown root:opksshuser /etc/opk/providers /etc/opk/auth_id && \
     chmod 640 /etc/opk/providers /etc/opk/auth_id
