@@ -9,7 +9,7 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
       "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
       "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "yes"
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = var.redirect_http_to_https ? "yes" : "no"
       "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
       "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
       "bunkerweb.io/ALLOWED_METHODS"                = "GET|POST|PUT|DELETE|HEAD|OPTIONS"
@@ -54,7 +54,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
       "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
       "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
       "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = "yes"
+      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = var.redirect_http_to_https ? "yes" : "no"
       "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
       "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
       "bunkerweb.io/COOKIE_AUTO_SECURE_FLAG"        = "no"

@@ -117,3 +117,9 @@ variable "allowed_ip_addresses" {
   default     = "0.0.0.0/0"
   description = "Comma-separated CIDR list for BunkerWeb IP whitelist"
 }
+
+variable "redirect_http_to_https" {
+  type        = bool
+  default     = true
+  description = "Enable HTTP to HTTPS redirect. Set to false for Azure until Let's Encrypt certificates are obtained, then set to true."
+}
