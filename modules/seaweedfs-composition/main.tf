@@ -5,13 +5,14 @@ resource "meshstack_building_block_v2" "seaweedfs_dns_record" {
     }
     target_ref = {
       kind = "meshTenant"
-      uuid = meshstack_tenant_v4.dev.metadata.uuid
+      uuid = var.dev_tenant_uuid
     }
     display_name = "Namespace Dev"
     inputs = {
-      namespace_name = {
-        value_string = "${var.name}-dev"
-      }
+      zone_name = { value_single_select = var.zone_name }
+      sub       = { value_string = var.sub }
+      type      = { value_single_select = var.dns_record_type }
+      ttl       = { value_string = var.ttl }
     }
   }
 }
@@ -23,14 +24,15 @@ resource "meshstack_building_block_v2" "namespace_dns_record" {
     }
     target_ref = {
       kind = "meshTenant"
-      uuid = meshstack_tenant_v4.prod.metadata.uuid
+      uuid = var.prod_tenant_uuid
     }
     display_name = "Namespace Prod"
     inputs = {
-      namespace_name = {
-        value_string = "${var.name}-prod"
-      }
+      inputs = {
+      zone_name = { value_single_select = var.zone_name }
+      sub       = { value_string = var.sub }
+      type      = { value_single_select = var.dns_record_type }
+      ttl       = { value_string = var.ttl }
     }
   }
 }
-

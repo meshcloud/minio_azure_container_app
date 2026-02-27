@@ -6,6 +6,6 @@ variable "kubeconfig_path" {
 
 variable "kubeconfig_context" {
   type        = string
-  default     = "kind-seaweedfs"
+  default     = "test-aks"
   description = "Kubeconfig context to use"
 }

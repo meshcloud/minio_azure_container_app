@@ -1,0 +1,10 @@
+resource_group_name = "meshcloud-aks-test"
+location            = "westeurope"
+aks_cluster_name    = "test-aks"
+k8s_version         = "1.32.10"
+node_pool_name      = "default"
+node_count          = 3
+vm_size             = "Standard_D2s_v3"
+storage_size        = 50
+nodeport_http       = 31063
+nodeport_https      = 31925
