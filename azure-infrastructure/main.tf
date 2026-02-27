@@ -54,3 +54,9 @@ data "azurerm_kubernetes_cluster" "main" {
 
   depends_on = [azurerm_kubernetes_cluster.main]
 }
+
+resource "azurerm_role_assignment" "aks_network_contributor" {
+  scope                = azurerm_resource_group.main.id
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_kubernetes_cluster.main.identity[0].principal_id
+}

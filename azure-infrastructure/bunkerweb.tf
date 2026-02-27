@@ -92,11 +92,17 @@ resource "kubernetes_service_v1" "bunkerweb_external" {
       "app.kubernetes.io/name"     = "bunkerweb"
       "app.kubernetes.io/instance" = "bunkerweb"
     }
+
+    annotations = {
+      "service.beta.kubernetes.io/azure-load-balancer-resource-group" = azurerm_resource_group.main.name
+      "service.beta.kubernetes.io/azure-pip-name"                     = azurerm_public_ip.lb.name
+    }
   }
 
   spec {
-    type                    = "NodePort"
+    type                    = "LoadBalancer"
     external_traffic_policy = "Local"
+    load_balancer_ip        = azurerm_public_ip.lb.ip_address
 
     selector = {
       "bunkerweb.io/component" = "bunkerweb"
@@ -107,7 +113,6 @@ resource "kubernetes_service_v1" "bunkerweb_external" {
       port        = 80
       target_port = 8080
       protocol    = "TCP"
-      node_port   = var.nodeport_http
     }
 
     port {
@@ -115,9 +120,8 @@ resource "kubernetes_service_v1" "bunkerweb_external" {
       port        = 443
       target_port = 8443
       protocol    = "TCP"
-      node_port   = var.nodeport_https
     }
   }
 
-  depends_on = [helm_release.bunkerweb]
+  depends_on = [helm_release.bunkerweb, azurerm_public_ip.lb]
 }
