@@ -3,16 +3,6 @@ variable "dns_definition_version_uuid" {
   description = "UUID of the DNS building block definition version."
 }
 
-variable "dev_tenant_uuid" {
-  type        = string
-  description = "UUID of the dev meshTenant."
-}
-
-variable "prod_tenant_uuid" {
-  type        = string
-  description = "UUID of the prod meshTenant."
-}
-
 variable "name" {
   type        = string
   description = "Base name used for generating resource names."
@@ -39,4 +29,56 @@ variable "ttl" {
   type        = string
   description = "DNS record TTL in seconds."
   default     = "300"
+}
+
+variable "k8s_platform" {
+  type        = string
+  description = "Target platform type: 'azure' or 'ionos'. Determines redirect behavior for Let's Encrypt compatibility."
+  default     = "ionos"
+
+  validation {
+    condition     = contains(["azure", "ionos"], var.k8s_platform)
+    error_message = "platform_type must be either 'azure' or 'ionos'."
+  }
+}
+
+variable "creator" {
+  type       = string
+  decription = "creator of the resources"
+}
+
+variable "az_cluster_ip" {
+  type        = string
+  description = "IP address of the Azure Kubernetes Service cluster. Used for creating appropriate DNS records."
+}
+
+variable "ionos_cluster_ip" {
+  type        = string
+  description = "IP address of the IONOS Kubernetes cluster. Used for creating appropriate DNS records."
+}
+
+variable "allowed_ip_addresses" {
+  type        = string
+  description = "Comma-separated CIDR list for BunkerWeb IP whitelist."
+  default     = "0.0.0.0/0"
+}
+
+variable "owned_by_workspace" {
+  type        = string
+  description = "Name of the workspace that owns the created resources."
+}
+
+variable "platform_identifier" {
+  type        = string
+  description = "Identifier of the platform where the tenant will be created."
+}
+
+variable "landing_zone_identifier" {
+  type        = string
+  description = "Identifier of the landing zone to use for the tenant."
+}
+
+variable "namespace_definition_version_uuid" {
+  type        = string
+  description = "UUID of the namespace building block definition version."
 }

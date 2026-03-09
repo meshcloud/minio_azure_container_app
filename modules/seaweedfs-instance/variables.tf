@@ -123,3 +123,29 @@ variable "redirect_http_to_https" {
   default     = true
   description = "Enable HTTP to HTTPS redirect. Set to false for Azure until Let's Encrypt certificates are obtained, then set to true."
 }
+
+variable "azure_config_path" {
+  type        = string
+  description = "Path to Azure Kubernetes config file"
+}
+
+variable "ionos_config_path" {
+  type        = string
+  description = "Path to IONOS Kubernetes config file"
+}
+
+variable "azure_config_context" {
+  type        = string
+  description = "Context name for Azure Kubernetes cluster"
+}
+
+variable "ionos_config_context" {
+  type        = string
+  description = "Context name for IONOS Kubernetes cluster"
+}
+
+variable "k8s_platform" {
+  type        = string
+  description = "Kubernetes platform type (e.g., 'azure', 'ionos'). Used for platform-specific configurations."
+}
+

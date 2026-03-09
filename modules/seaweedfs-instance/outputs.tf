@@ -28,16 +28,20 @@ output "mariadb_password" {
 output "keycloak_admin_password" {
   description = "Generated Keycloak admin password"
   value       = random_password.keycloak_admin_password.result
-  sensitive   = true
+  #sensitive   = true
 }
 
 output "keycloak_test_user_password" {
   description = "Generated Keycloak test user password"
   value       = random_password.keycloak_test_user_password.result
-  sensitive   = true
+  #sensitive   = true
 }
 
 output "aws_cli_configure_command" {
   description = "Command to configure AWS CLI for SeaweedFS S3"
   value       = "aws configure --profile seaweedfs set endpoint_url https://${var.seaweedfs_domain}"
+}
+
+output "tenant_id" {
+  value = kubernetes_namespace.this.id
 }
