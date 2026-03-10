@@ -1,7 +1,7 @@
 resource "kubernetes_persistent_volume_claim" "mariadb" {
   metadata {
     name      = "mariadb-data"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   wait_until_bound = false
@@ -21,7 +21,7 @@ resource "kubernetes_persistent_volume_claim" "mariadb" {
 resource "kubernetes_deployment" "mariadb" {
   metadata {
     name      = "mariadb"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     labels = {
       app = "mariadb"
@@ -131,7 +131,7 @@ resource "kubernetes_deployment" "mariadb" {
 resource "kubernetes_secret" "mariadb" {
   metadata {
     name      = "mariadb-credentials"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   data = {
@@ -143,7 +143,7 @@ resource "kubernetes_secret" "mariadb" {
 resource "kubernetes_service" "mariadb" {
   metadata {
     name      = "mariadb"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   spec {

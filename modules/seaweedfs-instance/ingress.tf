@@ -1,7 +1,7 @@
 resource "kubernetes_ingress_v1" "seaweedfs" {
   metadata {
     name      = "seaweedfs"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     annotations = {
       "bunkerweb.io/USE_MODSECURITY"                = "yes"
@@ -45,7 +45,7 @@ resource "kubernetes_ingress_v1" "seaweedfs" {
 resource "kubernetes_ingress_v1" "keycloak" {
   metadata {
     name      = "keycloak"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     annotations = {
       "bunkerweb.io/USE_MODSECURITY"                = "yes"
@@ -93,7 +93,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
 resource "kubernetes_config_map" "seaweedfs_modsec" {
   metadata {
     name      = "seaweedfs-modsec-crs"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     annotations = {
       "bunkerweb.io/CONFIG_TYPE" = "modsec-crs"
@@ -109,7 +109,7 @@ resource "kubernetes_config_map" "seaweedfs_modsec" {
 resource "kubernetes_config_map" "keycloak_modsec" {
   metadata {
     name      = "keycloak-modsec-crs"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     annotations = {
       "bunkerweb.io/CONFIG_TYPE" = "modsec-crs"

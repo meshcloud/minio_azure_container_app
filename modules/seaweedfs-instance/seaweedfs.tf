@@ -1,7 +1,7 @@
 resource "kubernetes_secret" "seaweedfs_iam" {
   metadata {
     name      = "seaweedfs-iam-config"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   data = {
@@ -129,7 +129,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
 resource "kubernetes_persistent_volume_claim" "seaweedfs" {
   metadata {
     name      = "seaweedfs-data"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   wait_until_bound = false
@@ -149,7 +149,7 @@ resource "kubernetes_persistent_volume_claim" "seaweedfs" {
 resource "kubernetes_deployment" "seaweedfs" {
   metadata {
     name      = "seaweedfs"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     labels = {
       app = "seaweedfs"
@@ -283,7 +283,7 @@ resource "kubernetes_deployment" "seaweedfs" {
 resource "kubernetes_service" "seaweedfs_s3" {
   metadata {
     name      = "seaweedfs-s3"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   spec {
@@ -303,7 +303,7 @@ resource "kubernetes_service" "seaweedfs_s3" {
 resource "kubernetes_service" "seaweedfs_master" {
   metadata {
     name      = "seaweedfs-master"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   spec {

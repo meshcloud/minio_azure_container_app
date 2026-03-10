@@ -1,7 +1,7 @@
 resource "kubernetes_config_map" "keycloak_realm" {
   metadata {
     name      = "keycloak-realm-config"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   data = {
@@ -19,7 +19,7 @@ resource "kubernetes_config_map" "keycloak_realm" {
 resource "kubernetes_persistent_volume_claim" "keycloak" {
   metadata {
     name      = "keycloak-data"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   wait_until_bound = false
@@ -39,7 +39,7 @@ resource "kubernetes_persistent_volume_claim" "keycloak" {
 resource "kubernetes_deployment" "keycloak" {
   metadata {
     name      = "keycloak"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
 
     labels = {
       app = "keycloak"
@@ -254,7 +254,7 @@ resource "kubernetes_deployment" "keycloak" {
 resource "kubernetes_secret" "keycloak" {
   metadata {
     name      = "keycloak-credentials"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   data = {
@@ -266,7 +266,7 @@ resource "kubernetes_secret" "keycloak" {
 resource "kubernetes_service" "keycloak" {
   metadata {
     name      = "keycloak"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.this.metadata[0].name
   }
 
   spec {
