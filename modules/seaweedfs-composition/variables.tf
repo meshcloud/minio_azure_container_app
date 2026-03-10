@@ -6,6 +6,11 @@ variable "dns_definition_version_uuid" {
 variable "name" {
   type        = string
   description = "Base name used for generating resource names."
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-_]{0,61}[a-zA-Z0-9]$", var.name))
+    error_message = "name must be 2-63 characters, start and end with alphanumeric, and contain only alphanumeric, hyphens, or underscores."
+  }
 }
 
 variable "zone_name" {
@@ -43,8 +48,8 @@ variable "k8s_platform" {
 }
 
 variable "creator" {
-  type       = string
-  decription = "creator of the resources"
+  type        = string
+  description = "creator of the resources"
 }
 
 variable "az_cluster_ip" {
@@ -61,6 +66,11 @@ variable "allowed_ip_addresses" {
   type        = string
   description = "Comma-separated CIDR list for BunkerWeb IP whitelist."
   default     = "0.0.0.0/0"
+
+  validation {
+    condition     = can(regex("^(((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12]?[0-9]))(,((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/(3[0-2]|[12]?[0-9]))*$", var.allowed_ip_addresses))
+    error_message = "allowed_ip_addresses must be a comma-separated list of valid CIDR blocks (e.g., '10.0.0.0/8,192.168.1.0/24')."
+  }
 }
 
 variable "owned_by_workspace" {
