@@ -47,14 +47,24 @@ variable "creator" {
   description = "creator of the resources"
 }
 
+variable "aks_public_ip" {
+  type        = string
+  description = "Public IP address of the Azure Load Balancer. Used for creating DNS A records that point to the Azure cluster."
+}
+
+variable "ionos_public_ip" {
+  type        = string
+  description = "Public IP address of the IONOS Network Load Balancer. Used for creating DNS A records that point to the IONOS cluster."
+}
+
 variable "az_cluster_ip" {
   type        = string
-  description = "IP address of the Azure Kubernetes Service cluster. Used for creating appropriate DNS records."
+  description = "Private ClusterIP of the BunkerWeb service in Azure Kubernetes Service. Used for internal DNS resolution within the cluster."
 }
 
 variable "ionos_cluster_ip" {
   type        = string
-  description = "IP address of the IONOS Kubernetes cluster. Used for creating appropriate DNS records."
+  description = "Private ClusterIP of the BunkerWeb service in IONOS Kubernetes cluster. Used for internal DNS resolution within the cluster."
 }
 
 variable "allowed_ip_addresses" {

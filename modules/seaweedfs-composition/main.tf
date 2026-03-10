@@ -9,6 +9,7 @@ locals {
   # Platform-specific configs
   storage_class_name     = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
   bunkerweb_cluster_ip   = var.k8s_platform == "azure" ? var.az_cluster_ip : var.ionos_cluster_ip
+  public_ip              = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
   redirect_http_to_https = var.k8s_platform == "azure" ? true : false
 
   # Parse creator JSON to extract email
@@ -61,6 +62,7 @@ resource "meshstack_building_block_v2" "seaweedfs_dns_record" {
     display_name = "seaweedfs dnsrecord: ${local.unique_name}"
     inputs = {
       zone_name = { value_single_select = var.zone_name }
+      record    = { value_string = local.public_ip }
       sub       = { value_string = "storage.${local.selected_sub}" }
       type      = { value_single_select = var.dns_record_type }
       ttl       = { value_string = var.ttl }
@@ -80,6 +82,7 @@ resource "meshstack_building_block_v2" "keycloak_dns_record" {
     display_name = "keycloak dnsrecord: ${local.unique_name}"
     inputs = {
       zone_name = { value_single_select = var.zone_name }
+      record    = { value_string = local.public_ip }
       sub       = { value_string = "keycloak.${local.selected_sub}" }
       type      = { value_single_select = var.dns_record_type }
       ttl       = { value_string = var.ttl }
@@ -98,15 +101,15 @@ resource "meshstack_building_block_v2" "namespace" {
     }
     display_name = "Namespace ${local.unique_name}"
     inputs = {
-      namespace            = { value_string = local.unique_name }
-      k8s_platform         = { value_single_select = var.k8s_platform }
-      storage_class_name   = { value_string = local.storage_class_name }
-      seaweedfs_domain     = { value_string = "storage.${local.selected_sub}" }
-      keycloak_domain      = { value_string = "keycloak.${local.selected_sub}" }
-      email_lets_encrypt   = { value_string = local.creator_email }
-      ingress_class_name   = { value_string = "bunkerweb" }
-      bunkerweb_cluster_ip = { value_string = local.bunkerweb_cluster_ip }
-      allowed_ip_addresses = { value_string = var.allowed_ip_addresses }
+      namespace              = { value_string = local.unique_name }
+      k8s_platform           = { value_single_select = var.k8s_platform }
+      storage_class_name     = { value_string = local.storage_class_name }
+      seaweedfs_domain       = { value_string = "storage.${local.selected_sub}" }
+      keycloak_domain        = { value_string = "keycloak.${local.selected_sub}" }
+      email_lets_encrypt     = { value_string = local.creator_email }
+      ingress_class_name     = { value_string = "bunkerweb" }
+      bunkerweb_cluster_ip   = { value_string = local.bunkerweb_cluster_ip }
+      allowed_ip_addresses   = { value_string = var.allowed_ip_addresses }
       redirect_http_to_https = { value_bool = local.redirect_http_to_https }
     }
   }
