@@ -19,11 +19,6 @@ variable "zone_name" {
   default     = "meshcloud.io"
 }
 
-variable "sub" {
-  type        = string
-  description = "DNS record subdomain."
-}
-
 variable "dns_record_type" {
   type        = string
   description = "DNS record type (A, CNAME, TXT)."
