@@ -104,8 +104,8 @@ resource "meshstack_building_block_v2" "namespace" {
       namespace              = { value_string = local.unique_name }
       k8s_platform           = { value_single_select = var.k8s_platform }
       storage_class_name     = { value_string = local.storage_class_name }
-      seaweedfs_domain       = { value_string = "storage.${local.selected_sub}" }
-      keycloak_domain        = { value_string = "keycloak.${local.selected_sub}" }
+      seaweedfs_domain       = { value_string = "storage.${local.selected_sub}.meshcloud.io" }
+      keycloak_domain        = { value_string = "keycloak.${local.selected_sub}.meshcloud.io" }
       email_lets_encrypt     = { value_string = local.creator_email }
       bunkerweb_cluster_ip   = { value_string = local.bunkerweb_cluster_ip }
       allowed_ip_addresses   = { value_string = var.allowed_ip_addresses }
