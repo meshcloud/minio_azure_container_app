@@ -107,7 +107,6 @@ resource "meshstack_building_block_v2" "namespace" {
       seaweedfs_domain       = { value_string = "storage.${local.selected_sub}" }
       keycloak_domain        = { value_string = "keycloak.${local.selected_sub}" }
       email_lets_encrypt     = { value_string = local.creator_email }
-      ingress_class_name     = { value_string = "bunkerweb" }
       bunkerweb_cluster_ip   = { value_string = local.bunkerweb_cluster_ip }
       allowed_ip_addresses   = { value_string = var.allowed_ip_addresses }
       redirect_http_to_https = { value_bool = local.redirect_http_to_https }
