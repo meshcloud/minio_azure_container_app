@@ -38,91 +38,72 @@ Your S3-compatible storage includes:
 - **Admin Username**: `admin`
 - **Admin Password**: Check building block outputs (sensitive)
 
-### Test User Credentials
-- **Username**: `testuser`
-- **Email**: `testuser@example.com`
-- **Password**: Check building block outputs (sensitive)
-- **Assigned Roles**: `customer-2` (access to `airliner-2` bucket)
+### Credentials Reference
+
+Retrieve these from building block outputs:
+
+| Type | Username/Client ID | Password/Secret | Purpose |
+|------|-------------------|-----------------|---------|
+| **Admin (S3)** | `admin_access_key` | `admin_secret_key` | Bucket provisioning only |
+| **Test User** | `testuser` | (see outputs) | Interactive user testing |
+| **Service Account** | `client-app-1` | (see outputs) | Machine-to-machine for `customer-1` |
+| **Service Account** | `client-app-2` | (see outputs) | Machine-to-machine for `customer-2` |
 
 ---
 
-## Authentication & Authorization Overview
+## Quick Start Guide
 
-SeaweedFS integrates with **Keycloak OIDC** for federated identity and role-based access control (RBAC).
+### Step 1: Admin - Create Buckets
 
-### Two Access Patterns
-
-1. **Admin Access (Static Credentials)**
-   - Used **only by administrators** to provision buckets and manage policies
-   - Credentials: `admin_access_key` + `admin_secret_key` (from building block outputs)
-   - **Does NOT use OIDC** – direct S3 API access
-   - Use AWS CLI or MinIO Client (`mc`)
-
-2. **User Access (OIDC + STS)**
-   - Used by **end users and applications** to access buckets
-   - Flow: Authenticate with Keycloak → Get OIDC token → Exchange for AWS STS credentials
-   - Roles mapped from Keycloak realm roles: `customer-1`, `customer-2`
-   - Temporary credentials (default: 1 hour)
-
-### Role Mapping
-
-User permissions are controlled through **Keycloak realm role membership**:
-
-| Keycloak Role | SeaweedFS Role | Permissions | Buckets |
-|---------------|----------------|-------------|---------|
-| `customer-1` | `Airliner1Role` | Full S3 access (`s3:*`) | `airliner-1` |
-| `customer-2` | `Airliner2Role` | Full S3 access (`s3:*`) | `airliner-2` |
-
-> **Note**: The `dummy` role is available as a placeholder for users with resource-based bucket policies only.
-
----
-
-## Next Steps
-
-### 1. Admin: Create Buckets Using Static Credentials
-
-**Administrators** provision buckets using **static admin credentials** (not OIDC). These credentials are available in the building block outputs.
+**Administrators** provision buckets using **static admin credentials**. These credentials bypass OIDC and should only be used for initial setup.
 
 ```bash
 # Configure AWS CLI with admin credentials (retrieve from building block outputs)
 export AWS_ACCESS_KEY_ID="<admin_access_key>"
 export AWS_SECRET_ACCESS_KEY="<admin_secret_key>"
-export AWS_ENDPOINT_URL=https://storage.${local.selected_sub}.meshcloud.io
+export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.meshcloud.io"
 
-# Create buckets for your users/teams
+# Create buckets
 aws s3 mb s3://airliner-1
 aws s3 mb s3://airliner-2
-aws s3 mb s3://shared-data
 
-# List all buckets
+# Verify
 aws s3 ls
 ```
 
-**Alternative: Use MinIO Client (`mc`) for advanced bucket management**
+**Alternative: MinIO Client for advanced management**
 
 ```bash
-# Configure mc with admin credentials
 mc alias set seaweedfs https://storage.${local.selected_sub}.meshcloud.io <admin_access_key> <admin_secret_key>
-
-# Create buckets
 mc mb seaweedfs/airliner-1
-
-# Apply dynamic bucket policies (user home folders with OIDC claims)
-mc anonymous set-json policy.json seaweedfs/airliner-1
 ```
-
-> ⚠️ **Note**: Admin credentials bypass OIDC authentication and should be used **only for initial bucket provisioning and policy management**.
 
 ---
 
-### 2. Users: Access Buckets with OIDC Authentication
+### Step 2: Understand Role-Based Access
 
-**End users** authenticate via **Keycloak OIDC** and receive temporary AWS credentials mapped to their assigned roles.
+User and application access is controlled through **Keycloak realm role membership**. When users or service accounts authenticate, their assigned roles determine which buckets they can access.
 
-#### Step 2.1: Authenticate with Keycloak and Get OIDC Token
+| Keycloak Realm Role | SeaweedFS IAM Role | Bucket Access | Permissions |
+|---------------------|-------------------|---------------|-------------|
+| `customer-1` | `Airliner1Role` | `airliner-1` | Full S3 access (`s3:*`) |
+| `customer-2` | `Airliner2Role` | `airliner-2` | Full S3 access (`s3:*`) |
+| `dummy` | N/A | Resource-based policies | Placeholder for dynamic policies |
+
+**How it works:**
+1. User/app authenticates with Keycloak → receives OIDC token containing realm roles
+2. Token is exchanged for temporary AWS STS credentials via `AssumeRoleWithWebIdentity`
+3. STS credentials are scoped to the permissions of the mapped IAM role
+4. Temporary credentials expire after 1 hour (default)
+
+---
+
+### Step 3: User Access (Interactive Login)
+
+**End users** authenticate with username/password to access buckets based on their assigned roles.
 
 ```bash
-# Obtain OIDC ID token from Keycloak
+# Get OIDC token from Keycloak
 export ID_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.meshcloud.io/realms/seaweedfs/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
@@ -130,103 +111,53 @@ export ID_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.meshcl
   -d "password=<testuser_password>" \
   -d "client_id=seaweedfs-client" \
   -d "scope=openid profile" | jq -r '.id_token')
-```
 
-#### Step 2.2: Exchange OIDC Token for AWS STS Credentials
-
-```bash
-# Request temporary AWS credentials via STS AssumeRoleWithWebIdentity
-aws sts assume-role-with-web-identity \
+# Exchange token for AWS STS credentials (customer-2 → Airliner2Role → airliner-2)
+CREDS=$(aws sts assume-role-with-web-identity \
   --endpoint-url "https://storage.${local.selected_sub}.meshcloud.io" \
   --role-arn "arn:aws:iam::role/Airliner2Role" \
   --role-session-name "testuser-session-$(date +%s)" \
   --web-identity-token "$ID_TOKEN" \
-  --duration-seconds 3600 \
-  --output json > /tmp/sts-creds.json
+  --duration-seconds 3600)
 
-# Extract and configure temporary credentials
-export AWS_ACCESS_KEY_ID=$(jq -r '.Credentials.AccessKeyId' /tmp/sts-creds.json)
-export AWS_SECRET_ACCESS_KEY=$(jq -r '.Credentials.SecretAccessKey' /tmp/sts-creds.json)
-export AWS_SESSION_TOKEN=$(jq -r '.Credentials.SessionToken' /tmp/sts-creds.json)
-export AWS_ENDPOINT_URL=https://storage.${local.selected_sub}.meshcloud.io
-```
+# Configure AWS CLI with temporary credentials
+export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')
+export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.meshcloud.io"
 
-#### Step 2.3: Use S3 API with User Credentials
-
-```bash
-# List accessible buckets (based on role permissions)
+# Use S3 API
 aws s3 ls
-
-# Upload a file to authorized bucket
 aws s3 cp file.txt s3://airliner-2/
-
-# Download a file
-aws s3 cp s3://airliner-2/file.txt ./downloaded-file.txt
-
-# List objects in bucket
-aws s3 ls s3://airliner-2
+aws s3 ls s3://airliner-2/
 ```
 
 ---
 
-### 3. Manage Access & Roles
+### Step 4: Application Access (Service Accounts)
 
-Keycloak provides two pre-configured realm roles for customer bucket access:
+**Applications** use **client credentials** (machine-to-machine) for automated access. This is the recommended approach for service accounts.
 
-- **customer-1** → `Airliner1Role` (full access to `airliner-1` bucket)
-- **customer-2** → `Airliner2Role` (full access to `airliner-2` bucket)
-
-**To add new users or change role assignments**, access the Keycloak admin console:
-
-[Manage Users & Roles](https://keycloak.${local.selected_sub}.meshcloud.io/admin/master/console/#/seaweedfs/users)
-
-**To add new buckets and roles**, you must:
-1. Create the bucket using admin credentials (see Step 1)
-2. Update the SeaweedFS IAM configuration to add new policies and roles (requires configuration change + restart)
-3. OR use dynamic bucket policies via MinIO Client (`mc anonymous set-json`) with the `dummy` role
-
----
-
-### 4. Application Authentication (Client Credentials Flow)
-
-Applications use **client credentials grant** (machine-to-machine) instead of user passwords. This is the recommended approach for automated systems and service accounts.
-
-**Pre-configured service accounts**:
-- `client-app-1` → Role: `customer-1` (access to `airliner-1`)
-- `client-app-2` → Role: `customer-2` (access to `airliner-2`)
-
-Client secrets are available in the building block outputs.
-
-#### Complete Example: End-to-End Workflow
-
-Here's a complete working example that demonstrates the full workflow from admin bucket creation to client application access:
+**Complete Example: Bucket Creation → Client Access**
 
 ```bash
-# ============================================================================
-# STEP 1: ADMIN - Create Bucket with Static Credentials
-# ============================================================================
-# Retrieve admin credentials from building block outputs
+# Step 1: Admin creates bucket (if not already done)
 export AWS_ACCESS_KEY_ID="<admin_access_key>"
 export AWS_SECRET_ACCESS_KEY="<admin_secret_key>"
 export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.meshcloud.io"
 
-# Create bucket for client-app-1 (customer-1 role = airliner-1)
 aws s3 mb s3://airliner-1
-
-# Verify bucket creation
 aws s3 ls
 
-# ============================================================================
-# STEP 2: APPLICATION - Access Bucket via Client Credentials + OIDC
-# ============================================================================
-# Obtain access token using client credentials (machine-to-machine auth)
+# Step 2: Application accesses bucket via client credentials (client-app-1)
+# Obtain access token using client credentials (no username/password needed)
 export ACCESS_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.meshcloud.io/realms/seaweedfs/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=client-app-1" \
   -d "client_secret=<client_app_1_secret>" \
   -d "grant_type=client_credentials" | jq -r '.access_token')
 
-# Exchange OIDC token for temporary AWS STS credentials
+# Exchange for AWS STS credentials (customer-1 → Airliner1Role → airliner-1)
 CREDS=$(aws sts assume-role-with-web-identity \
   --endpoint-url "https://storage.${local.selected_sub}.meshcloud.io" \
   --role-arn "arn:aws:iam::role/Airliner1Role" \
@@ -240,32 +171,40 @@ export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessK
 export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')
 export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.meshcloud.io"
 
-# ============================================================================
-# STEP 3: USE S3 API WITH CLIENT APPLICATION CREDENTIALS
-# ============================================================================
-# List accessible buckets (should see airliner-1)
+# Step 3: Use S3 API with application credentials
+# List accessible buckets
 aws s3 ls
 
-# Upload a file to the bucket
+# Upload a file
 echo "Hello from client-app-1!" > test-file.txt
-aws s3 cp test-file.txt s3://airliner-1/test-file.txt
+aws s3 cp test-file.txt s3://airliner-1/
 
 # List objects in bucket
 aws s3 ls s3://airliner-1/
-
-# Download the file
-aws s3 cp s3://airliner-1/test-file.txt ./downloaded-file.txt
 ```
 
-**Important Notes:**
-- ⚠️ The scope parameter in the token request should **NOT** include `profile` for client credentials flow (only `openid` or omit entirely)
-- ✅ Admin credentials bypass OIDC and should only be used for bucket provisioning
-- ✅ Client credentials are temporary (default: 1 hour) and automatically include the service account's assigned roles
-- ✅ Each client application is isolated to its assigned bucket via role-based access control
+**Key Points:**
+- ✅ Service accounts (`client-app-1`, `client-app-2`) are pre-configured with realm role assignments
+- ✅ No `profile` scope needed for client credentials flow (only `openid` or omit entirely)
+- ✅ Credentials are temporary (1 hour default) and scoped to the service account's role
+- ✅ Each application is isolated to its assigned bucket via RBAC
 
 ---
 
-### 5. Access Kubernetes Resources
+### Step 5: Manage Users & Roles
+
+To add users or change role assignments, use the Keycloak admin console:
+
+[Manage Users & Roles](https://keycloak.${local.selected_sub}.meshcloud.io/admin/master/console/#/seaweedfs/users)
+
+**To add new buckets and roles:**
+1. Create the bucket using admin credentials (Step 1)
+2. Update SeaweedFS IAM configuration to add new policies/roles (requires configuration change + restart)
+3. **OR** use dynamic bucket policies with `mc anonymous set-json` and the `dummy` role
+
+---
+
+## Access Kubernetes Resources
 
 Platform: **${var.k8s_platform}**  
 Namespace: **${local.unique_name}**
@@ -279,8 +218,9 @@ Namespace: **${local.unique_name}**
 - ✅ SSL/TLS enabled via Let's Encrypt (email: ${local.creator_email})
 - ✅ ModSecurity WAF active on all ingresses
 - ✅ IP whitelisting configured: `${var.allowed_ip_addresses}`
-- ✅ OIDC authentication required for S3 access
-- ✅ Role-based access control via Keycloak groups
+- ✅ OIDC authentication required for user/app S3 access
+- ✅ Role-based access control via Keycloak realm roles
+- ⚠️ Admin credentials bypass OIDC - use only for bucket provisioning
 ${var.k8s_platform == "azure" ? "- ✅ HTTP to HTTPS redirect enabled" : ""}
 
 ---
@@ -299,7 +239,6 @@ curl -I https://storage.${local.selected_sub}.meshcloud.io
 
 ### View Building Block Status
 
-Check the status of deployed building blocks in the meshStack panel:
 - [SeaweedFS DNS Record](#/w/${var.owned_by_workspace}/p/${meshstack_project.project.metadata.name}/t/${meshstack_tenant_v4.tenant.metadata.uuid}/bb/${meshstack_building_block_v2.seaweedfs_dns_record.metadata.uuid})
 - [Keycloak DNS Record](#/w/${var.owned_by_workspace}/p/${meshstack_project.project.metadata.name}/t/${meshstack_tenant_v4.tenant.metadata.uuid}/bb/${meshstack_building_block_v2.keycloak_dns_record.metadata.uuid})
 - [Namespace Building Block](#/w/${var.owned_by_workspace}/p/${meshstack_project.project.metadata.name}/t/${meshstack_tenant_v4.tenant.metadata.uuid}/bb/${meshstack_building_block_v2.namespace.metadata.uuid})
@@ -312,6 +251,7 @@ Check the status of deployed building blocks in the meshStack panel:
 |----------|-------|
 | S3 Endpoint | `https://storage.${local.selected_sub}.meshcloud.io` |
 | Keycloak URL | `https://keycloak.${local.selected_sub}.meshcloud.io` |
+| Keycloak Admin | `https://keycloak.${local.selected_sub}.meshcloud.io/admin` |
 | Namespace | `${local.unique_name}` |
 | Platform | `${var.k8s_platform}` |
 | Storage Class | `${local.storage_class_name}` |
