@@ -149,3 +149,9 @@ variable "k8s_platform" {
   description = "Kubernetes platform type (e.g., 'azure', 'ionos'). Used for platform-specific configurations."
 }
 
+variable "seaweedfs_admin_access_key" {
+  type        = string
+  default     = "admin"
+  description = "SeaweedFS admin access key for S3 API"
+}
+

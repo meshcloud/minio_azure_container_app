@@ -41,3 +41,18 @@ resource "random_password" "keycloak_test_user_password" {
   special          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
+
+resource "random_password" "seaweedfs_admin_secret" {
+  length  = 32
+  special = false
+}
+
+resource "random_password" "client_app_1_secret" {
+  length  = 32
+  special = false
+}
+
+resource "random_password" "client_app_2_secret" {
+  length  = 32
+  special = false
+}

@@ -1,3 +1,23 @@
+resource "kubernetes_secret" "seaweedfs_identity" {
+  metadata {
+    name      = "seaweedfs-identity-config"
+    namespace = kubernetes_namespace.this.metadata[0].name
+  }
+
+  data = {
+    "identity.json" = jsonencode({
+      identities = [{
+        name = "admin"
+        credentials = [{
+          accessKey = var.seaweedfs_admin_access_key
+          secretKey = random_password.seaweedfs_admin_secret.result
+        }]
+        actions = ["Admin", "Read", "Write", "List", "Tagging"]
+      }]
+    })
+  }
+}
+
 resource "kubernetes_secret" "seaweedfs_iam" {
   metadata {
     name      = "seaweedfs-iam-config"
@@ -5,8 +25,9 @@ resource "kubernetes_secret" "seaweedfs_iam" {
   }
 
   data = {
-    "iam.json" = jsonencode({
+    "oidc.json" = jsonencode({
       sts = {
+        enabled          = true
         tokenDuration    = "1h"
         maxSessionLength = "12h"
         issuer           = "seaweedfs-sts"
@@ -18,104 +39,97 @@ resource "kubernetes_secret" "seaweedfs_iam" {
         enabled = true
         config = {
           issuer      = "https://${var.keycloak_domain}/realms/seaweedfs"
-          clientId    = "seaweedfs-client"
+          clientId    = "seaweedfs-s3"
           jwksUri     = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/certs"
           userInfoUri = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/userinfo"
-          scopes      = ["openid", "profile", "email"]
+          scopes      = ["openid", "profile", "email", "roles", "groups"]
           roleMapping = {
             rules = [
-              { claim = "groups", value = "admins", role = "arn:aws:iam::role/S3AdminRole" },
-              { claim = "groups", value = "developers", role = "arn:aws:iam::role/S3WriteRole" }
+              { claim = "roles", value = "customer-1", role = "arn:aws:iam::role/Airliner1Role" },
+              { claim = "roles", value = "customer-2", role = "arn:aws:iam::role/Airliner2Role" }
             ]
-            defaultRole = "arn:aws:iam::role/S3ReadOnlyRole"
           }
         }
       }]
       policies = [
         {
-          name = "S3ReadOnlyPolicy"
+          name = "Airliner1Policy"
           document = {
             Version = "2012-10-17"
             Statement = [{
-              Effect   = "Allow"
-              Action   = ["s3:List*", "s3:Get*"]
-              Resource = ["*"]
-            }]
-          }
-        },
-        {
-          name = "S3WritePolicy"
-          document = {
-            Version = "2012-10-17"
-            Statement = [{
-              Effect   = "Allow"
-              Action   = ["s3:List*", "s3:Get*", "s3:Put*", "s3:Delete*", "s3:CreateBucket"]
-              Resource = ["*"]
-            }]
-          }
-        },
-        {
-          name = "S3AdminPolicy"
-          document = {
-            Version = "2012-10-17"
-            Statement = [{
+              Sid      = "AllowBucketRootListing"
               Effect   = "Allow"
               Action   = ["s3:*"]
-              Resource = ["*"]
+              Resource = ["arn:aws:s3:::airliner-1", "arn:aws:s3:::airliner-1/*"]
+            }]
+          }
+        },
+        {
+          name = "Airliner2Policy"
+          document = {
+            Version = "2012-10-17"
+            Statement = [{
+              Sid      = "AllowBucketRootListing"
+              Effect   = "Allow"
+              Action   = ["s3:*"]
+              Resource = ["arn:aws:s3:::airliner-2", "arn:aws:s3:::airliner-2/*"]
             }]
           }
         }
       ]
       roles = [
         {
-          roleName         = "S3ReadOnlyRole"
-          roleArn          = "arn:aws:iam::role/S3ReadOnlyRole"
-          attachedPolicies = ["S3ReadOnlyPolicy"]
+          roleName         = "Airliner1Role"
+          roleArn          = "arn:aws:iam::role/Airliner1Role"
+          attachedPolicies = ["Airliner1Policy"]
           trustPolicy = {
             Version = "2012-10-17"
             Statement = [{
               Effect    = "Allow"
-              Principal = { Federated = "*" }
+              Principal = { Federated = "keycloak" }
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:iss"   = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:roles" = "customer-1"
+                  "oidc:aud"   = "seaweedfs-s3"
                 }
               }
             }]
           }
         },
         {
-          roleName         = "S3WriteRole"
-          roleArn          = "arn:aws:iam::role/S3WriteRole"
-          attachedPolicies = ["S3WritePolicy"]
+          roleName         = "Airliner2Role"
+          roleArn          = "arn:aws:iam::role/Airliner2Role"
+          attachedPolicies = ["Airliner2Policy"]
           trustPolicy = {
             Version = "2012-10-17"
             Statement = [{
               Effect    = "Allow"
-              Principal = { Federated = "*" }
+              Principal = { Federated = "keycloak" }
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:iss"   = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:roles" = "customer-2"
+                  "oidc:aud"   = "seaweedfs-s3"
                 }
               }
             }]
           }
         },
         {
-          roleName         = "S3AdminRole"
-          roleArn          = "arn:aws:iam::role/S3AdminRole"
-          attachedPolicies = ["S3AdminPolicy"]
+          roleName = "dummy"
           trustPolicy = {
             Version = "2012-10-17"
             Statement = [{
               Effect    = "Allow"
-              Principal = { Federated = "*" }
+              Principal = { Federated = "keycloak" }
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "seaweed:Issuer" = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:iss" = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:aud" = "seaweedfs-s3"
                 }
               }
             }]
@@ -204,7 +218,8 @@ resource "kubernetes_deployment" "seaweedfs" {
             "-s3",
             "-s3.port=8333",
             "-dir=/data",
-            "-iam.config=/etc/seaweed/iam.json"
+            "-s3.config=/etc/seaweed/identity/identity.json",
+            "-s3.iam.config=/etc/seaweed/iam/oidc.json"
           ]
 
           port {
@@ -225,14 +240,26 @@ resource "kubernetes_deployment" "seaweedfs" {
             protocol       = "TCP"
           }
 
+          port {
+            name           = "admin"
+            container_port = 23646
+            protocol       = "TCP"
+          }
+
           volume_mount {
             name       = "data"
             mount_path = "/data"
           }
 
           volume_mount {
+            name       = "identity-config"
+            mount_path = "/etc/seaweed/identity"
+            read_only  = true
+          }
+
+          volume_mount {
             name       = "iam-config"
-            mount_path = "/etc/seaweed"
+            mount_path = "/etc/seaweed/iam"
             read_only  = true
           }
 
@@ -265,6 +292,14 @@ resource "kubernetes_deployment" "seaweedfs" {
 
           persistent_volume_claim {
             claim_name = kubernetes_persistent_volume_claim.seaweedfs.metadata[0].name
+          }
+        }
+
+        volume {
+          name = "identity-config"
+
+          secret {
+            secret_name = kubernetes_secret.seaweedfs_identity.metadata[0].name
           }
         }
 
@@ -315,6 +350,13 @@ resource "kubernetes_service" "seaweedfs_master" {
       name        = "master"
       port        = 9333
       target_port = 9333
+      protocol    = "TCP"
+    }
+
+    port {
+      name        = "admin"
+      port        = 23646
+      target_port = 23646
       protocol    = "TCP"
     }
   }

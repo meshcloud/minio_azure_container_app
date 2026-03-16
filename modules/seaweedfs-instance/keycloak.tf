@@ -8,6 +8,8 @@ resource "kubernetes_config_map" "keycloak_realm" {
     "realm-config.json" = templatefile("${path.module}/realm-config.json.tpl", {
       fqdn                 = var.keycloak_domain
       client_secret        = random_password.keycloak_client_secret.result
+      client_app_1_secret  = random_password.client_app_1_secret.result
+      client_app_2_secret  = random_password.client_app_2_secret.result
       test_user_username   = var.keycloak_test_user_username
       test_user_email      = var.keycloak_test_user_email
       test_user_password   = random_password.keycloak_test_user_password.result
