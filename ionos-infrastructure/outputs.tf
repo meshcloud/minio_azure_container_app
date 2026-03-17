@@ -1,6 +1,6 @@
-output "nlb_public_ip" {
-  value       = ionoscloud_ipblock.nlb.ips[0]
-  description = "Public IP of the NLB — point DNS records here"
+output "alb_public_ip" {
+  value       = ionoscloud_ipblock.alb.ips[0]
+  description = "Public IP of the ALB — point DNS records here"
 }
 
 output "kubeconfig" {
@@ -29,12 +29,13 @@ output "bunkerweb_ingress_class_name" {
   description = "Ingress class name for the shared BunkerWeb deployment"
 }
 
-output "nlb_listener_lan_id" {
-  value       = ionoscloud_lan.nlb_listener.id
-  description = "NLB listener LAN ID (for firewall rules)"
+output "alb_listener_lan_id" {
+  value       = ionoscloud_lan.alb_listener.id
+  description = "ALB listener LAN ID (for firewall rules)"
 }
 
-output "nlb_name" {
-  value       = ionoscloud_networkloadbalancer.main.name
-  description = "NLB name"
+output "alb_name" {
+  value       = ionoscloud_application_loadbalancer.main.name
+  description = "ALB name"
 }
+
