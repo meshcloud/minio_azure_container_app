@@ -7,10 +7,10 @@ locals {
   selected_sub = var.k8s_platform == "azure" ? local.azure_sub : local.ionos_sub
 
   # Platform-specific configs
-  storage_class_name     = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
-  bunkerweb_cluster_ip   = var.k8s_platform == "azure" ? var.az_cluster_ip : var.ionos_cluster_ip
-  public_ip              = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
-  redirect_http_to_https = var.k8s_platform == "azure" ? true : false
+  storage_class_name   = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
+  bunkerweb_cluster_ip = var.k8s_platform == "azure" ? var.az_cluster_ip : var.ionos_cluster_ip
+  public_ip            = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
+  #redirect_http_to_https = var.k8s_platform == "azure" ? true : false
 
   # Parse creator JSON to extract email
   creator_data  = jsondecode(var.creator)
@@ -109,7 +109,7 @@ resource "meshstack_building_block_v2" "namespace" {
       email_lets_encrypt     = { value_string = local.creator_email }
       bunkerweb_cluster_ip   = { value_string = local.bunkerweb_cluster_ip }
       allowed_ip_addresses   = { value_string = var.allowed_ip_addresses }
-      redirect_http_to_https = { value_bool = local.redirect_http_to_https }
+      redirect_http_to_https = { value_bool = true }
     }
   }
 }
