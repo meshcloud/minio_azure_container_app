@@ -240,12 +240,6 @@ resource "kubernetes_deployment" "seaweedfs" {
             protocol       = "TCP"
           }
 
-          port {
-            name           = "admin"
-            container_port = 23646
-            protocol       = "TCP"
-          }
-
           volume_mount {
             name       = "data"
             mount_path = "/data"
@@ -350,13 +344,6 @@ resource "kubernetes_service" "seaweedfs_master" {
       name        = "master"
       port        = 9333
       target_port = 9333
-      protocol    = "TCP"
-    }
-
-    port {
-      name        = "admin"
-      port        = 23646
-      target_port = 23646
       protocol    = "TCP"
     }
   }

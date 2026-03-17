@@ -28,3 +28,13 @@ output "bunkerweb_ingress_class_name" {
   value       = "bunkerweb"
   description = "Ingress class name for the shared BunkerWeb deployment"
 }
+
+output "nlb_listener_lan_id" {
+  value       = ionoscloud_lan.nlb_listener.id
+  description = "NLB listener LAN ID (for firewall rules)"
+}
+
+output "nlb_name" {
+  value       = ionoscloud_networkloadbalancer.main.name
+  description = "NLB name"
+}

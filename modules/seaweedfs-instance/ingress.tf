@@ -121,3 +121,41 @@ resource "kubernetes_config_map" "keycloak_modsec" {
     "keycloak-exclusions.conf" = "SecRuleRemoveById 934100-934199\nSecRuleRemoveById 953100\nSecRuleRemoveById 959100"
   }
 }
+
+resource "kubernetes_config_map" "seaweedfs_ip_whitelist" {
+  metadata {
+    name      = "seaweedfs-ip-whitelist"
+    namespace = kubernetes_namespace.this.metadata[0].name
+
+    annotations = {
+      "bunkerweb.io/CONFIG_TYPE" = "server-http"
+      "bunkerweb.io/CONFIG_SITE" = var.seaweedfs_domain
+    }
+  }
+
+  data = {
+    "ip-whitelist.conf" = <<-EOT
+      ${join("\n      ", [for cidr in split(",", var.allowed_ip_addresses) : "allow ${trimspace(cidr)};"])}
+      deny all;
+    EOT
+  }
+}
+
+resource "kubernetes_config_map" "keycloak_ip_whitelist" {
+  metadata {
+    name      = "keycloak-ip-whitelist"
+    namespace = kubernetes_namespace.this.metadata[0].name
+
+    annotations = {
+      "bunkerweb.io/CONFIG_TYPE" = "server-http"
+      "bunkerweb.io/CONFIG_SITE" = var.keycloak_domain
+    }
+  }
+
+  data = {
+    "ip-whitelist.conf" = <<-EOT
+      ${join("\n      ", [for cidr in split(",", var.allowed_ip_addresses) : "allow ${trimspace(cidr)};"])}
+      deny all;
+    EOT
+  }
+}
