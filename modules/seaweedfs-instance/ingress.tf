@@ -135,6 +135,9 @@ resource "kubernetes_config_map" "seaweedfs_ip_whitelist" {
 
   data = {
     "ip-whitelist.conf" = <<-EOT
+      location /.well-known/acme-challenge/ {
+        allow all;
+      }
       ${join("\n      ", [for cidr in split(",", var.allowed_ip_addresses) : "allow ${trimspace(cidr)};"])}
       deny all;
     EOT
@@ -154,6 +157,9 @@ resource "kubernetes_config_map" "keycloak_ip_whitelist" {
 
   data = {
     "ip-whitelist.conf" = <<-EOT
+      location /.well-known/acme-challenge/ {
+        allow all;
+      }
       ${join("\n      ", [for cidr in split(",", var.allowed_ip_addresses) : "allow ${trimspace(cidr)};"])}
       deny all;
     EOT
