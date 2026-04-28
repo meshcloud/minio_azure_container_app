@@ -12,7 +12,7 @@ locals {
   public_ip            = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
 
   # Let's Encrypt challenge type: Azure uses HTTP (NLB with TLS passthrough), IONOS uses DNS (ALB without TLS passthrough)
-  lets_encrypt_challenge    = var.k8s_platform == "azure" ? "http" : var.lets_encrypt_challenge
+  lets_encrypt_challenge    = var.k8s_platform == "azure" ? "http" : "dns"
   lets_encrypt_dns_provider = var.k8s_platform == "ionos" ? "ionoscloud" : ""
 
   # Domain configuration: Azure uses meshcloud.io, IONOS uses ionos.msh.host
