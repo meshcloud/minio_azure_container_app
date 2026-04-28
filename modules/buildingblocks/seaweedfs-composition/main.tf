@@ -10,7 +10,13 @@ locals {
   storage_class_name   = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
   bunkerweb_cluster_ip = var.k8s_platform == "azure" ? var.az_cluster_ip : var.ionos_cluster_ip
   public_ip            = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
-  #redirect_http_to_https = var.k8s_platform == "azure" ? true : false
+
+  # Let's Encrypt challenge type: Azure uses HTTP (NLB with TLS passthrough), IONOS uses DNS (ALB without TLS passthrough)
+  lets_encrypt_challenge    = var.k8s_platform == "azure" ? "http" : var.lets_encrypt_challenge
+  lets_encrypt_dns_provider = var.k8s_platform == "ionos" ? var.lets_encrypt_dns_provider : ""
+
+  # Domain configuration: Azure uses meshcloud.io, IONOS uses ionos.msh.host
+  base_domain = var.k8s_platform == "azure" ? "meshcloud.io" : "msh.host"
 
   # Parse creator JSON to extract email
   creator_data  = jsondecode(var.creator)
@@ -101,15 +107,18 @@ resource "meshstack_building_block_v2" "namespace" {
     }
     display_name = "Namespace ${local.unique_name}"
     inputs = {
-      namespace              = { value_string = local.unique_name }
-      k8s_platform           = { value_single_select = var.k8s_platform }
-      storage_class_name     = { value_string = local.storage_class_name }
-      seaweedfs_domain       = { value_string = "storage.${local.selected_sub}.meshcloud.io" }
-      keycloak_domain        = { value_string = "keycloak.${local.selected_sub}.meshcloud.io" }
-      email_lets_encrypt     = { value_string = local.creator_email }
-      bunkerweb_cluster_ip   = { value_string = local.bunkerweb_cluster_ip }
-      allowed_ip_addresses   = { value_string = var.allowed_ip_addresses }
-      redirect_http_to_https = { value_bool = true }
+      namespace                 = { value_string = local.unique_name }
+      k8s_platform              = { value_single_select = var.k8s_platform }
+      storage_class_name        = { value_string = local.storage_class_name }
+      seaweedfs_domain          = { value_string = "storage.${local.selected_sub}.${local.base_domain}" }
+      keycloak_domain           = { value_string = "keycloak.${local.selected_sub}.${local.base_domain}" }
+      email_lets_encrypt        = { value_string = local.creator_email }
+      bunkerweb_cluster_ip      = { value_string = local.bunkerweb_cluster_ip }
+      allowed_ip_addresses      = { value_string = var.allowed_ip_addresses }
+      redirect_http_to_https    = { value_bool = true }
+      lets_encrypt_challenge    = { value_string = local.lets_encrypt_challenge }
+      lets_encrypt_dns_provider = { value_string = local.lets_encrypt_dns_provider }
+      # ionos_dns_api_prefix and ionos_dns_api_secret are set as static values in the building block definition
     }
   }
 }

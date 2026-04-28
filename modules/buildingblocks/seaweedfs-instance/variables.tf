@@ -155,3 +155,34 @@ variable "seaweedfs_admin_access_key" {
   description = "SeaweedFS admin access key for S3 API"
 }
 
+variable "lets_encrypt_challenge" {
+  type        = string
+  default     = "http"
+  description = "Let's Encrypt challenge type: 'http' or 'dns'. Use 'dns' for IONOS ALB which doesn't support TLS passthrough."
+
+  validation {
+    condition     = contains(["http", "dns"], var.lets_encrypt_challenge)
+    error_message = "lets_encrypt_challenge must be either 'http' or 'dns'."
+  }
+}
+
+variable "lets_encrypt_dns_provider" {
+  type        = string
+  default     = ""
+  description = "DNS provider for Let's Encrypt DNS-01 challenge (e.g., 'ionos', 'route53', 'cloudflare'). Required when lets_encrypt_challenge is 'dns'."
+}
+
+variable "ionos_dns_api_prefix" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "IONOS DNS API prefix for DNS-01 challenge authentication."
+}
+
+variable "ionos_dns_api_secret" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "IONOS DNS API secret for DNS-01 challenge authentication."
+}
+

@@ -15,7 +15,7 @@ variable "name" {
 
 variable "zone_name" {
   type        = string
-  description = "DNS zone name."
+  description = "DNS zone name. Use 'meshcloud.io' for Azure, 'ionos.msh.host' for IONOS."
   default     = "meshcloud.io"
 }
 
@@ -96,4 +96,21 @@ variable "landing_zone_identifier" {
 variable "namespace_definition_version_uuid" {
   type        = string
   description = "UUID of the namespace building block definition version."
+}
+
+variable "lets_encrypt_challenge" {
+  type        = string
+  default     = "http"
+  description = "Let's Encrypt challenge type: 'http' for Azure (NLB with TLS passthrough), 'dns' for IONOS (ALB without TLS passthrough)."
+
+  validation {
+    condition     = contains(["http", "dns"], var.lets_encrypt_challenge)
+    error_message = "lets_encrypt_challenge must be either 'http' or 'dns'."
+  }
+}
+
+variable "lets_encrypt_dns_provider" {
+  type        = string
+  default     = ""
+  description = "DNS provider for Let's Encrypt DNS-01 challenge (e.g., 'ionos', 'route53', 'cloudflare'). Required when lets_encrypt_challenge is 'dns'."
 }

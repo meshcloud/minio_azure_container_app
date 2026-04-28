@@ -1,19 +1,53 @@
+locals {
+  # Base annotations for BunkerWeb
+  base_annotations = {
+    "bunkerweb.io/USE_MODSECURITY"                = "yes"
+    "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
+    "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
+    "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
+    "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
+    "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = var.redirect_http_to_https ? "yes" : "no"
+    "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
+    "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
+    "bunkerweb.io/LETS_ENCRYPT_CHALLENGE"         = var.lets_encrypt_challenge
+  }
+
+  # DNS-01 challenge annotations (only when using dns challenge)
+  dns_challenge_annotations = var.lets_encrypt_challenge == "dns" ? {
+    "bunkerweb.io/LETS_ENCRYPT_DNS_PROVIDER"          = var.lets_encrypt_dns_provider
+    "bunkerweb.io/LETS_ENCRYPT_DNS_CREDENTIAL_ITEM"   = "prefix ${var.ionos_dns_api_prefix}"
+    "bunkerweb.io/LETS_ENCRYPT_DNS_CREDENTIAL_ITEM_2" = "secret ${var.ionos_dns_api_secret}"
+  } : {}
+
+  # SeaweedFS specific annotations
+  seaweedfs_annotations = merge(
+    local.base_annotations,
+    local.dns_challenge_annotations,
+    {
+      "bunkerweb.io/ALLOWED_METHODS" = "GET|POST|PUT|DELETE|HEAD|OPTIONS"
+    }
+  )
+
+  # Keycloak specific annotations
+  keycloak_annotations = merge(
+    local.base_annotations,
+    local.dns_challenge_annotations,
+    {
+      "bunkerweb.io/USE_ANTIBOT"               = "no"
+      "bunkerweb.io/COOKIE_AUTO_SECURE_FLAG"   = "no"
+      "bunkerweb.io/COOKIE_FLAGS"              = ""
+      "bunkerweb.io/STRICT_TRANSPORT_SECURITY" = "max-age=31536000"
+      "bunkerweb.io/CONTENT_SECURITY_POLICY"   = ""
+    }
+  )
+}
+
 resource "kubernetes_ingress_v1" "seaweedfs" {
   metadata {
     name      = "seaweedfs"
     namespace = kubernetes_namespace.this.metadata[0].name
 
-    annotations = {
-      "bunkerweb.io/USE_MODSECURITY"                = "yes"
-      "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
-      "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
-      "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
-      "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = var.redirect_http_to_https ? "yes" : "no"
-      "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
-      "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
-      "bunkerweb.io/ALLOWED_METHODS"                = "GET|POST|PUT|DELETE|HEAD|OPTIONS"
-    }
+    annotations = local.seaweedfs_annotations
   }
 
   spec {
@@ -47,21 +81,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
     name      = "keycloak"
     namespace = kubernetes_namespace.this.metadata[0].name
 
-    annotations = {
-      "bunkerweb.io/USE_MODSECURITY"                = "yes"
-      "bunkerweb.io/USE_ANTIBOT"                    = "no"
-      "bunkerweb.io/USE_LIMIT_REQ"                  = "no"
-      "bunkerweb.io/USE_BAD_BEHAVIOR"               = "no"
-      "bunkerweb.io/AUTO_LETS_ENCRYPT"              = "yes"
-      "bunkerweb.io/EMAIL_LETS_ENCRYPT"             = var.email_lets_encrypt
-      "bunkerweb.io/REDIRECT_HTTP_TO_HTTPS"         = var.redirect_http_to_https ? "yes" : "no"
-      "bunkerweb.io/INTERCEPTED_ERROR_CODES"        = ""
-      "bunkerweb.io/REVERSE_PROXY_INTERCEPT_ERRORS" = "no"
-      "bunkerweb.io/COOKIE_AUTO_SECURE_FLAG"        = "no"
-      "bunkerweb.io/COOKIE_FLAGS"                   = ""
-      "bunkerweb.io/STRICT_TRANSPORT_SECURITY"      = "max-age=31536000"
-      "bunkerweb.io/CONTENT_SECURITY_POLICY"        = ""
-    }
+    annotations = local.keycloak_annotations
   }
 
   spec {

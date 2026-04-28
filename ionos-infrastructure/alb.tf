@@ -19,13 +19,13 @@ resource "ionoscloud_application_loadbalancer" "main" {
 }
 
 resource "ionoscloud_application_loadbalancer_forwardingrule" "http" {
-  datacenter_id                 = data.ionoscloud_datacenter.main.id
-  application_loadbalancer_id   = ionoscloud_application_loadbalancer.main.id
-  name                          = "http"
-  protocol                      = "HTTP"
-  listener_ip                   = ionoscloud_ipblock.alb.ips[0]
-  listener_port                 = 80
-  client_timeout                = 60000
+  datacenter_id               = data.ionoscloud_datacenter.main.id
+  application_loadbalancer_id = ionoscloud_application_loadbalancer.main.id
+  name                        = "http"
+  protocol                    = "HTTP"
+  listener_ip                 = ionoscloud_ipblock.alb.ips[0]
+  listener_port               = 80
+  client_timeout              = 60000
 
   http_rules {
     name         = "forward-to-bunkerweb"
@@ -40,13 +40,13 @@ resource "ionoscloud_application_loadbalancer_forwardingrule" "http" {
 }
 
 resource "ionoscloud_application_loadbalancer_forwardingrule" "https" {
-  datacenter_id                 = data.ionoscloud_datacenter.main.id
-  application_loadbalancer_id   = ionoscloud_application_loadbalancer.main.id
-  name                          = "https"
-  protocol                      = "HTTP"
-  listener_ip                   = ionoscloud_ipblock.alb.ips[0]
-  listener_port                 = 443
-  client_timeout                = 60000
+  datacenter_id               = data.ionoscloud_datacenter.main.id
+  application_loadbalancer_id = ionoscloud_application_loadbalancer.main.id
+  name                        = "https"
+  protocol                    = "HTTP"
+  listener_ip                 = ionoscloud_ipblock.alb.ips[0]
+  listener_port               = 443
+  client_timeout              = 60000
 
   http_rules {
     name         = "forward-to-bunkerweb"
