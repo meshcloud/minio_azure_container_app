@@ -14,8 +14,8 @@ resource "helm_release" "bunkerweb" {
     }
 
     bunkerweb = {
-      kind     = "Deployment"
-      replicas = 1
+      kind     = "DaemonSet" # Run on all nodes for HA with hostNetwork
+      replicas = 1           # Ignored for DaemonSet, but kept for reference
 
       # Use custom image with IONOS Cloud DNS support
       repository = "ghcr.io/florianow/bunkerweb-ionoscloud"
@@ -25,6 +25,25 @@ resource "helm_release" "bunkerweb" {
       pdb = {
         create = false
       }
+
+      # Use host network to bind directly to node IPs on ports 80/443
+      hostNetwork = true
+      dnsPolicy   = "ClusterFirstWithHostNet" # Required when using hostNetwork
+
+      # Override default ports to use 80/443 directly
+      http = {
+        port = 80
+      }
+      https = {
+        port = 443
+      }
+    }
+
+    # Use custom scheduler image with IONOS Cloud DNS support
+    scheduler = {
+      repository = "ghcr.io/florianow/bunkerweb-scheduler-ionoscloud"
+      tag        = "1.6.9-v2"
+      pullPolicy = "Always"
     }
 
     settings = {
@@ -35,6 +54,10 @@ resource "helm_release" "bunkerweb" {
       misc = {
         dnsResolvers   = var.bunkerweb_dns_resolvers
         apiWhitelistIp = "127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 100.64.0.0/10"
+        # Use real client IP (preserved with hostNetwork)
+        useRealIp    = "yes"
+        realIpFrom   = "0.0.0.0/0"
+        realIpHeader = "X-Forwarded-For"
       }
 
       ui = {
@@ -49,7 +72,10 @@ resource "helm_release" "bunkerweb" {
     }
 
     controller = {
-      enabled = true
+      enabled    = true
+      repository = "docker.io/bunkerity/bunkerweb-autoconf"
+      tag        = "1.6.9"
+      pullPolicy = "IfNotPresent"
     }
 
     ui = {
@@ -84,43 +110,4 @@ resource "helm_release" "bunkerweb" {
       enabled = false
     }
   })]
-}
-
-resource "kubernetes_service_v1" "bunkerweb_external" {
-  metadata {
-    name      = "bunkerweb-external"
-    namespace = var.bunkerweb_namespace
-
-    labels = {
-      "app.kubernetes.io/name"     = "bunkerweb"
-      "app.kubernetes.io/instance" = "bunkerweb"
-    }
-  }
-
-  spec {
-    type                    = "NodePort"
-    external_traffic_policy = "Local"
-
-    selector = {
-      "bunkerweb.io/component" = "bunkerweb"
-    }
-
-    port {
-      name        = "http"
-      port        = 80
-      target_port = 8080
-      protocol    = "TCP"
-      node_port   = var.nodeport_http
-    }
-
-    port {
-      name        = "https"
-      port        = 443
-      target_port = 8443
-      protocol    = "TCP"
-      node_port   = var.nodeport_https
-    }
-  }
-
-  depends_on = [helm_release.bunkerweb]
 }

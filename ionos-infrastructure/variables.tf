@@ -112,3 +112,9 @@ variable "bunkerweb_storage_class_name" {
   default     = "ionos-enterprise-ssd"
   description = "StorageClass for BunkerWeb MariaDB and Redis PVCs"
 }
+
+variable "ionos_dns_token" {
+  type        = string
+  sensitive   = true
+  description = "IONOS Cloud DNS API token for Let's Encrypt DNS-01 challenge"
+}

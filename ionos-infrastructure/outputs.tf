@@ -1,6 +1,8 @@
-output "alb_public_ip" {
-  value       = ionoscloud_ipblock.alb.ips[0]
-  description = "Public IP of the ALB — point DNS records here"
+# Worker node IPs - point DNS A records to these
+# With hostNetwork mode, BunkerWeb binds directly to ports 80/443 on these IPs
+output "worker_node_ips" {
+  value       = data.ionoscloud_k8s_node_pool_nodes.main.nodes[*].public_ip
+  description = "Public IPs of worker nodes (point DNS A records to one or all of these)"
 }
 
 output "kubeconfig" {
@@ -19,23 +21,8 @@ output "datacenter_id" {
   description = "Datacenter ID"
 }
 
-output "bunkerweb_cluster_ip" {
-  value       = kubernetes_service_v1.bunkerweb_external.spec[0].cluster_ip
-  description = "ClusterIP of the BunkerWeb external service (pass to seaweedfs-instance module)"
-}
-
 output "bunkerweb_ingress_class_name" {
   value       = "bunkerweb"
   description = "Ingress class name for the shared BunkerWeb deployment"
-}
-
-output "alb_listener_lan_id" {
-  value       = ionoscloud_lan.alb_listener.id
-  description = "ALB listener LAN ID (for firewall rules)"
-}
-
-output "alb_name" {
-  value       = ionoscloud_application_loadbalancer.main.name
-  description = "ALB name"
 }
 

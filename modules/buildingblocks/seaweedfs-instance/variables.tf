@@ -179,3 +179,15 @@ variable "ionos_dns_token" {
   description = "IONOS Cloud DNS API token (Bearer token for dns.de-fra.ionos.com) for DNS-01 challenge authentication."
 }
 
+variable "ionos_dns_zone_id" {
+  type        = string
+  default     = ""
+  description = "IONOS Cloud DNS Zone ID where DNS records will be created."
+}
+
+variable "worker_node_ips" {
+  type        = list(string)
+  default     = []
+  description = "List of worker node public IPs for DNS A records. When set, DNS records are created pointing to these IPs."
+}
+
