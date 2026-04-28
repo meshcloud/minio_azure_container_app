@@ -13,7 +13,7 @@ locals {
 
   # Let's Encrypt challenge type: Azure uses HTTP (NLB with TLS passthrough), IONOS uses DNS (ALB without TLS passthrough)
   lets_encrypt_challenge    = var.k8s_platform == "azure" ? "http" : var.lets_encrypt_challenge
-  lets_encrypt_dns_provider = var.k8s_platform == "ionos" ? var.lets_encrypt_dns_provider : ""
+  lets_encrypt_dns_provider = var.k8s_platform == "ionos" ? "ionoscloud" : ""
 
   # Domain configuration: Azure uses meshcloud.io, IONOS uses ionos.msh.host
   base_domain = var.k8s_platform == "azure" ? "meshcloud.io" : "msh.host"
@@ -118,7 +118,7 @@ resource "meshstack_building_block_v2" "namespace" {
       redirect_http_to_https    = { value_bool = true }
       lets_encrypt_challenge    = { value_string = local.lets_encrypt_challenge }
       lets_encrypt_dns_provider = { value_string = local.lets_encrypt_dns_provider }
-      # ionos_dns_api_prefix and ionos_dns_api_secret are set as static values in the building block definition
+      # ionos_dns_token is set as static value in the building block definition
     }
   }
 }

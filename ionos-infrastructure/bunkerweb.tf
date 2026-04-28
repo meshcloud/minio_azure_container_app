@@ -17,6 +17,11 @@ resource "helm_release" "bunkerweb" {
       kind     = "Deployment"
       replicas = 1
 
+      # Use custom image with IONOS Cloud DNS support
+      repository = "ghcr.io/florianow/bunkerweb-ionoscloud"
+      tag        = "1.6.9"
+      pullPolicy = "IfNotPresent"
+
       pdb = {
         create = false
       }

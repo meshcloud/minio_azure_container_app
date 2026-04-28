@@ -111,6 +111,6 @@ variable "lets_encrypt_challenge" {
 
 variable "lets_encrypt_dns_provider" {
   type        = string
-  default     = ""
-  description = "DNS provider for Let's Encrypt DNS-01 challenge (e.g., 'ionos', 'route53', 'cloudflare'). Required when lets_encrypt_challenge is 'dns'."
+  default     = "ionoscloud"
+  description = "DNS provider for Let's Encrypt DNS-01 challenge. Use 'ionoscloud' for IONOS Cloud DNS."
 }

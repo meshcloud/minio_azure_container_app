@@ -14,9 +14,8 @@ locals {
 
   # DNS-01 challenge annotations (only when using dns challenge)
   dns_challenge_annotations = var.lets_encrypt_challenge == "dns" ? {
-    "bunkerweb.io/LETS_ENCRYPT_DNS_PROVIDER"          = var.lets_encrypt_dns_provider
-    "bunkerweb.io/LETS_ENCRYPT_DNS_CREDENTIAL_ITEM"   = "prefix ${var.ionos_dns_api_prefix}"
-    "bunkerweb.io/LETS_ENCRYPT_DNS_CREDENTIAL_ITEM_2" = "secret ${var.ionos_dns_api_secret}"
+    "bunkerweb.io/LETS_ENCRYPT_DNS_PROVIDER"        = var.lets_encrypt_dns_provider
+    "bunkerweb.io/LETS_ENCRYPT_DNS_CREDENTIAL_ITEM" = "dns_ionos_token ${var.ionos_dns_token}"
   } : {}
 
   # SeaweedFS specific annotations
