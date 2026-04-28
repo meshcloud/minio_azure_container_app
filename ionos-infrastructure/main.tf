@@ -1,6 +1,5 @@
 data "ionoscloud_datacenter" "main" {
-  name     = var.datacenter_name
-  location = var.location
+  id = "2dbe0403-732e-4fcb-98d1-9df607f4ce78"
 }
 
 resource "ionoscloud_lan" "nodepool" {
