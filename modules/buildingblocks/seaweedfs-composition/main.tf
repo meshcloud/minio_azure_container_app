@@ -56,25 +56,25 @@ resource "meshstack_tenant_v4" "tenant" {
   }
 }
 
-resource "meshstack_building_block_v2" "seaweedfs_dns_record" {
-  spec = {
-    building_block_definition_version_ref = {
-      uuid = var.dns_definition_version_uuid
-    }
-    target_ref = {
-      kind = "meshTenant"
-      uuid = meshstack_tenant_v4.tenant.metadata.uuid
-    }
-    display_name = "seaweedfs dnsrecord: ${local.unique_name}"
-    inputs = {
-      zone_name = { value_single_select = var.zone_name }
-      record    = { value_string = local.public_ip }
-      sub       = { value_string = "storage.${local.selected_sub}" }
-      type      = { value_single_select = var.dns_record_type }
-      ttl       = { value_string = var.ttl }
-    }
-  }
-}
+# resource "meshstack_building_block_v2" "seaweedfs_dns_record" {
+#   spec = {
+#     building_block_definition_version_ref = {
+#       uuid = var.dns_definition_version_uuid
+#     }
+#     target_ref = {
+#       kind = "meshTenant"
+#       uuid = meshstack_tenant_v4.tenant.metadata.uuid
+#     }
+#     display_name = "seaweedfs dnsrecord: ${local.unique_name}"
+#     inputs = {
+#       zone_name = { value_single_select = var.zone_name }
+#       record    = { value_string = local.public_ip }
+#       sub       = { value_string = "storage.${local.selected_sub}" }
+#       type      = { value_single_select = var.dns_record_type }
+#       ttl       = { value_string = var.ttl }
+#     }
+#   }
+# }
 
 # resource "meshstack_building_block_v2" "keycloak_dns_record" {
 #   spec = {
