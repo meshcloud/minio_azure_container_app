@@ -9,8 +9,18 @@ This composition has set up the following resources in workspace `${var.owned_by
 
 @project[${var.owned_by_workspace}.${meshstack_project.project.metadata.name}]\
 &nbsp;&nbsp;&nbsp;&nbsp;@tenant[${meshstack_tenant_v4.tenant.metadata.uuid}]\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@buildingblock[${meshstack_building_block_v2.seaweedfs_dns_record.metadata.uuid}]\
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@buildingblock[${meshstack_building_block_v2.namespace.metadata.uuid}]
+
+---
+
+## DNS Records
+
+The following DNS A records are automatically created pointing to the worker nodes:
+
+| Domain | Target IP |
+|--------|-----------|
+| `storage.${local.selected_sub}.${local.base_domain}` | `${local.public_ip}` |
+| `keycloak.${local.selected_sub}.${local.base_domain}` | `${local.public_ip}` |
 
 ---
 
