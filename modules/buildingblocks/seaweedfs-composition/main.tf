@@ -2,9 +2,9 @@ locals {
   unique_name = "${var.name}-${random_string.suffix.result}"
   identifier  = lower(trim(replace(local.unique_name, "/[\\s\\-\\_]+/", "-"), "-"))
 
-  azure_sub    = "${local.unique_name}.azure"
-  ionos_sub    = "${local.unique_name}.ionos"
-  selected_sub = var.k8s_platform == "azure" ? local.azure_sub : local.ionos_sub
+  #  azure_sub    = "${local.unique_name}.azure"
+  ionos_sub = local.unique_name
+  # selected_sub = var.k8s_platform == "azure" ? local.azure_sub : local.ionos_sub
 
   # Platform-specific configs
   storage_class_name = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
@@ -16,7 +16,7 @@ locals {
   lets_encrypt_dns_provider = var.k8s_platform == "ionos" ? "ionoscloud" : ""
 
   # Domain configuration: Azure uses meshcloud.io, IONOS uses ionos.msh.host
-  base_domain = var.k8s_platform == "azure" ? "meshcloud.io" : "msh.host"
+  #  base_domain = var.k8s_platform == "azure" ? "meshcloud.io" : "ionos.msh.host"
 
   # Parse creator JSON to extract email
   creator_data  = jsondecode(var.creator)
@@ -56,46 +56,6 @@ resource "meshstack_tenant_v4" "tenant" {
   }
 }
 
-# resource "meshstack_building_block_v2" "seaweedfs_dns_record" {
-#   spec = {
-#     building_block_definition_version_ref = {
-#       uuid = var.dns_definition_version_uuid
-#     }
-#     target_ref = {
-#       kind = "meshTenant"
-#       uuid = meshstack_tenant_v4.tenant.metadata.uuid
-#     }
-#     display_name = "seaweedfs dnsrecord: ${local.unique_name}"
-#     inputs = {
-#       zone_name = { value_single_select = var.zone_name }
-#       record    = { value_string = local.public_ip }
-#       sub       = { value_string = "storage.${local.selected_sub}" }
-#       type      = { value_single_select = var.dns_record_type }
-#       ttl       = { value_string = var.ttl }
-#     }
-#   }
-# }
-
-# resource "meshstack_building_block_v2" "keycloak_dns_record" {
-#   spec = {
-#     building_block_definition_version_ref = {
-#       uuid = var.dns_definition_version_uuid
-#     }
-#     target_ref = {
-#       kind = "meshTenant"
-#       uuid = meshstack_tenant_v4.tenant.metadata.uuid
-#     }
-#     display_name = "keycloak dnsrecord: ${local.unique_name}"
-#     inputs = {
-#       zone_name = { value_single_select = var.zone_name }
-#       record    = { value_string = local.public_ip }
-#       sub       = { value_string = "keycloak.${local.selected_sub}" }
-#       type      = { value_single_select = var.dns_record_type }
-#       ttl       = { value_string = var.ttl }
-#     }
-#   }
-# }
-
 resource "meshstack_building_block_v2" "namespace" {
   spec = {
     building_block_definition_version_ref = {
@@ -110,14 +70,16 @@ resource "meshstack_building_block_v2" "namespace" {
       namespace          = { value_string = local.unique_name }
       k8s_platform       = { value_single_select = var.k8s_platform }
       storage_class_name = { value_string = local.storage_class_name }
-      seaweedfs_domain   = { value_string = "storage.${local.selected_sub}.${local.base_domain}" }
-      keycloak_domain    = { value_string = "keycloak.${local.selected_sub}.${local.base_domain}" }
+      seaweedfs_domain   = { value_string = "storage.${local.unique_name}" }
+      keycloak_domain    = { value_string = "keycloak.${local.unique_name}" }
       email_lets_encrypt = { value_string = local.creator_email }
       #bunkerweb_cluster_ip      = { value_string = local.bunkerweb_cluster_ip }
       allowed_ip_addresses      = { value_string = var.allowed_ip_addresses }
       redirect_http_to_https    = { value_bool = true }
       lets_encrypt_challenge    = { value_string = local.lets_encrypt_challenge }
       lets_encrypt_dns_provider = { value_string = local.lets_encrypt_dns_provider }
+      worker_node_ip            = { value_string = var.ionos_public_ip }
+
       # ionos_dns_token is set as static value in the building block definition
     }
   }

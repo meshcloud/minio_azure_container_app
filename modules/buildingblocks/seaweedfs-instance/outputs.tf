@@ -70,22 +70,22 @@ output "tenant_id" {
   value = kubernetes_namespace.this.id
 }
 
-output "dns_records_seaweedfs" {
-  description = "SeaweedFS DNS A records created"
-  value = [for r in ionoscloud_dns_record.seaweedfs : {
-    name    = r.name
-    type    = r.type
-    content = r.content
-    fqdn    = "${r.name}.${var.seaweedfs_domain}"
-  }]
+output "dns_record_seaweedfs" {
+  description = "SeaweedFS DNS A record"
+  value = length(ionoscloud_dns_record.seaweedfs) > 0 ? {
+    name    = ionoscloud_dns_record.seaweedfs[0].name
+    type    = ionoscloud_dns_record.seaweedfs[0].type
+    content = ionoscloud_dns_record.seaweedfs[0].content
+    fqdn    = var.seaweedfs_domain
+  } : null
 }
 
-output "dns_records_keycloak" {
-  description = "Keycloak DNS A records created"
-  value = [for r in ionoscloud_dns_record.keycloak : {
-    name    = r.name
-    type    = r.type
-    content = r.content
-    fqdn    = "${r.name}.${var.keycloak_domain}"
-  }]
+output "dns_record_keycloak" {
+  description = "Keycloak DNS A record"
+  value = length(ionoscloud_dns_record.keycloak) > 0 ? {
+    name    = ionoscloud_dns_record.keycloak[0].name
+    type    = ionoscloud_dns_record.keycloak[0].type
+    content = ionoscloud_dns_record.keycloak[0].content
+    fqdn    = var.keycloak_domain
+  } : null
 }

@@ -4,30 +4,27 @@ locals {
   config_path    = var.k8s_platform == "azure" ? var.azure_config_path : var.ionos_config_path
   config_context = var.k8s_platform == "azure" ? var.azure_config_context : var.ionos_config_context
 
-  # DNS record configuration
-  keycloak_subdomain  = split(".", var.keycloak_domain)[0]
-  seaweedfs_subdomain = split(".", var.seaweedfs_domain)[0]
-  create_dns_records  = var.ionos_dns_zone_id != "" && length(var.worker_node_ips) > 0
+  create_dns_records = var.ionos_dns_zone_id != "" && var.worker_node_ip != ""
 }
 
-# DNS A records for Keycloak - one per worker node IP
+# DNS A record for Keycloak
 resource "ionoscloud_dns_record" "keycloak" {
-  count   = local.create_dns_records ? length(var.worker_node_ips) : 0
+  count   = local.create_dns_records ? 1 : 0
   zone_id = var.ionos_dns_zone_id
-  name    = local.keycloak_subdomain
+  name    = var.keycloak_domain
   type    = "A"
-  content = var.worker_node_ips[count.index]
+  content = var.worker_node_ip
   ttl     = 300
   enabled = true
 }
 
-# DNS A records for SeaweedFS - one per worker node IP
+# DNS A record for SeaweedFS
 resource "ionoscloud_dns_record" "seaweedfs" {
-  count   = local.create_dns_records ? length(var.worker_node_ips) : 0
+  count   = local.create_dns_records ? 1 : 0
   zone_id = var.ionos_dns_zone_id
-  name    = local.seaweedfs_subdomain
+  name    = var.seaweedfs_domain
   type    = "A"
-  content = var.worker_node_ips[count.index]
+  content = var.worker_node_ip
   ttl     = 300
   enabled = true
 }

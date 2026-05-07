@@ -185,9 +185,9 @@ variable "ionos_dns_zone_id" {
   description = "IONOS Cloud DNS Zone ID where DNS records will be created."
 }
 
-variable "worker_node_ips" {
-  type        = list(string)
-  default     = []
-  description = "List of worker node public IPs for DNS A records. When set, DNS records are created pointing to these IPs."
+variable "worker_node_ip" {
+  type        = string
+  default     = ""
+  description = "Worker node public IP for DNS A records."
 }
 

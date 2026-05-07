@@ -87,7 +87,7 @@ resource "kubernetes_ingress_v1" "keycloak" {
     ingress_class_name = var.ingress_class_name
 
     rule {
-      host = var.keycloak_domain
+      host = "${var.keycloak_domain}.${var.ionos_dns_zone_id}"
 
       http {
         path {
@@ -116,7 +116,7 @@ resource "kubernetes_config_map" "seaweedfs_modsec" {
 
     annotations = {
       "bunkerweb.io/CONFIG_TYPE" = "modsec-crs"
-      "bunkerweb.io/CONFIG_SITE" = var.seaweedfs_domain
+      "bunkerweb.io/CONFIG_SITE" = "${var.seaweedfs_domain}.${var.ionos_dns_zone_id}"
     }
   }
 
@@ -132,7 +132,7 @@ resource "kubernetes_config_map" "keycloak_modsec" {
 
     annotations = {
       "bunkerweb.io/CONFIG_TYPE" = "modsec-crs"
-      "bunkerweb.io/CONFIG_SITE" = var.keycloak_domain
+      "bunkerweb.io/CONFIG_SITE" = "${var.keycloak_domain}.${var.ionos_dns_zone_id}"
     }
   }
 
@@ -148,7 +148,7 @@ resource "kubernetes_config_map" "seaweedfs_ip_whitelist" {
 
     annotations = {
       "bunkerweb.io/CONFIG_TYPE" = "server-http"
-      "bunkerweb.io/CONFIG_SITE" = var.seaweedfs_domain
+      "bunkerweb.io/CONFIG_SITE" = "${var.seaweedfs_domain}.${var.ionos_dns_zone_id}"
     }
   }
 
@@ -170,7 +170,7 @@ resource "kubernetes_config_map" "keycloak_ip_whitelist" {
 
     annotations = {
       "bunkerweb.io/CONFIG_TYPE" = "server-http"
-      "bunkerweb.io/CONFIG_SITE" = var.keycloak_domain
+      "bunkerweb.io/CONFIG_SITE" = "${var.keycloak_domain}.${var.ionos_dns_zone_id}"
     }
   }
 
