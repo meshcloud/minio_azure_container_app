@@ -1,16 +1,16 @@
 output "s3_api_url" {
   description = "SeaweedFS S3 API endpoint (via BunkerWeb ingress)"
-  value       = "https://${var.seaweedfs_domain}"
+  value       = "https://${var.seaweedfs_domain}.${var.ionos_dns_zone_id}"
 }
 
 output "keycloak_url" {
   description = "Keycloak URL"
-  value       = "https://${var.keycloak_domain}"
+  value       = "https://${var.keycloak_domain}.${var.ionos_dns_zone_id}"
 }
 
 output "keycloak_admin_console_url" {
   description = "Keycloak admin console URL"
-  value       = "https://${var.keycloak_domain}/admin"
+  value       = "https://${var.keycloak_domain}.${var.ionos_dns_zone_id}/admin"
 }
 
 output "keycloak_client_secret" {
@@ -63,7 +63,7 @@ output "client_app_2_secret" {
 
 output "aws_cli_configure_command" {
   description = "Command to configure AWS CLI for SeaweedFS S3"
-  value       = "aws configure --profile seaweedfs set endpoint_url https://${var.seaweedfs_domain}"
+  value       = "aws configure --profile seaweedfs set endpoint_url https://${var.seaweedfs_domain}.${var.ionos_dns_zone_id}"
 }
 
 output "tenant_id" {
@@ -76,7 +76,7 @@ output "dns_record_seaweedfs" {
     name    = ionoscloud_dns_record.seaweedfs[0].name
     type    = ionoscloud_dns_record.seaweedfs[0].type
     content = ionoscloud_dns_record.seaweedfs[0].content
-    fqdn    = var.seaweedfs_domain
+    fqdn    = "${var.seaweedfs_domain}.${var.ionos_dns_zone_id}"
   } : null
 }
 
@@ -86,6 +86,6 @@ output "dns_record_keycloak" {
     name    = ionoscloud_dns_record.keycloak[0].name
     type    = ionoscloud_dns_record.keycloak[0].type
     content = ionoscloud_dns_record.keycloak[0].content
-    fqdn    = var.keycloak_domain
+    fqdn    = "${var.keycloak_domain}.${var.ionos_dns_zone_id}"
   } : null
 }

@@ -1,19 +1,16 @@
 locals {
   unique_name = "${var.name}-${random_string.suffix.result}"
   identifier  = lower(trim(replace(local.unique_name, "/[\\s\\-\\_]+/", "-"), "-"))
+  ionos_sub   = local.unique_name
 
-  #  azure_sub    = "${local.unique_name}.azure"
-  ionos_sub = local.unique_name
-  # selected_sub = var.k8s_platform == "azure" ? local.azure_sub : local.ionos_sub
 
   # Platform-specific configs
   storage_class_name = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
-  # bunkerweb_cluster_ip = var.k8s_platform == "azure" ? var.az_cluster_ip : var.ionos_cluster_ip
-  public_ip = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
+  public_ip          = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
 
   # Let's Encrypt challenge type: Azure uses HTTP (NLB with TLS passthrough), IONOS uses DNS (ALB without TLS passthrough)
-  lets_encrypt_challenge    = var.k8s_platform == "azure" ? "http" : "dns"
-  lets_encrypt_dns_provider = var.k8s_platform == "ionos" ? "ionoscloud" : ""
+  lets_encrypt_challenge    = "dns"
+  lets_encrypt_dns_provider = "ionoscloud"
 
   # Domain configuration: Azure uses meshcloud.io, IONOS uses ionos.msh.host
   #  base_domain = var.k8s_platform == "azure" ? "meshcloud.io" : "ionos.msh.host"
