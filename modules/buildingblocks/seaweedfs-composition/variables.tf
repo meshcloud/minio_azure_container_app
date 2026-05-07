@@ -1,8 +1,3 @@
-variable "dns_definition_version_uuid" {
-  type        = string
-  description = "UUID of the DNS building block definition version."
-}
-
 variable "name" {
   type        = string
   description = "Base name used for generating resource names."
@@ -62,10 +57,10 @@ variable "az_cluster_ip" {
   description = "Private ClusterIP of the BunkerWeb service in Azure Kubernetes Service. Used for internal DNS resolution within the cluster."
 }
 
-variable "ionos_cluster_ip" {
-  type        = string
-  description = "Private ClusterIP of the BunkerWeb service in IONOS Kubernetes cluster. Used for internal DNS resolution within the cluster."
-}
+# variable "ionos_cluster_ip" {
+#   type        = string
+#   description = "Private ClusterIP of the BunkerWeb service in IONOS Kubernetes cluster. Used for internal DNS resolution within the cluster."
+# }
 
 variable "allowed_ip_addresses" {
   type        = string

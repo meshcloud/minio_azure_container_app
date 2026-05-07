@@ -1,5 +1,5 @@
 provider "ionoscloud" {
-  token = var.ionos_token
+  #  token = var.ionos_token
 }
 
 provider "kubernetes" {
