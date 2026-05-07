@@ -6,14 +6,10 @@ locals {
 
   # Platform-specific configs
   storage_class_name = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
-  public_ip          = var.k8s_platform == "azure" ? var.aks_public_ip : var.ionos_public_ip
 
   # Let's Encrypt challenge type: Azure uses HTTP (NLB with TLS passthrough), IONOS uses DNS (ALB without TLS passthrough)
   lets_encrypt_challenge    = "dns"
   lets_encrypt_dns_provider = "ionoscloud"
-
-  # Domain configuration: Azure uses meshcloud.io, IONOS uses ionos.msh.host
-  #  base_domain = var.k8s_platform == "azure" ? "meshcloud.io" : "ionos.msh.host"
 
   # Parse creator JSON to extract email
   creator_data  = jsondecode(var.creator)
@@ -65,7 +61,6 @@ resource "meshstack_building_block_v2" "namespace" {
     display_name = "Namespace ${local.unique_name}"
     inputs = {
       namespace          = { value_string = local.unique_name }
-      k8s_platform       = { value_single_select = var.k8s_platform }
       storage_class_name = { value_string = local.storage_class_name }
       seaweedfs_domain   = { value_string = "storage.${local.unique_name}" }
       keycloak_domain    = { value_string = "keycloak.${local.unique_name}" }

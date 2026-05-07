@@ -19,8 +19,8 @@ The following DNS A records are automatically created pointing to the worker nod
 
 | Domain | Target IP |
 |--------|-----------|
-| `storage.${local.selected_sub}.${local.base_domain}` | `${local.public_ip}` |
-| `keycloak.${local.selected_sub}.${local.base_domain}` | `${local.public_ip}` |
+| `${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}` | `${var.ionos_public_ip}` |
+| `${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}` | `${var.ionos_public_ip}` |
 
 ---
 
@@ -39,11 +39,11 @@ Your S3-compatible storage includes:
 ## Access Your Services
 
 ### S3 API Endpoint
-[storage.${local.selected_sub}.${local.base_domain}](https://storage.${local.selected_sub}.${local.base_domain})
+[${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}](${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string})
 
 ### Keycloak Identity Provider
-- **URL**: [keycloak.${local.selected_sub}.${local.base_domain}](https://keycloak.${local.selected_sub}.${local.base_domain})
-- **Admin Console**: [keycloak.${local.selected_sub}.${local.base_domain}/admin](https://keycloak.${local.selected_sub}.${local.base_domain}/admin)
+- **URL**: [${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}](${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string})
+- **Admin Console**: [${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string}](${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string})
 - **Admin Username**: `admin`
 - **Admin Password**: Check building block outputs (sensitive)
 
@@ -70,7 +70,7 @@ Retrieve these from building block outputs:
 # Configure AWS CLI with admin credentials (retrieve from building block outputs)
 export AWS_ACCESS_KEY_ID="<admin_access_key>"
 export AWS_SECRET_ACCESS_KEY="<admin_secret_key>"
-export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.${local.base_domain}"
+export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
 
 # Create buckets
 aws s3 mb s3://airliner-1
@@ -83,7 +83,7 @@ aws s3 ls
 **Alternative: MinIO Client for advanced management**
 
 ```bash
-mc alias set seaweedfs https://storage.${local.selected_sub}.${local.base_domain} <admin_access_key> <admin_secret_key>
+mc alias set seaweedfs ${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string} <admin_access_key> <admin_secret_key>
 mc mb seaweedfs/airliner-1
 ```
 
@@ -113,7 +113,7 @@ User and application access is controlled through **Keycloak realm role membersh
 
 ```bash
 # Get OIDC token from Keycloak
-export ID_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.${local.base_domain}/realms/seaweedfs/protocol/openid-connect/token" \
+export ID_TOKEN=$(curl -s -X POST "${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}/realms/seaweedfs/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
   -d "username=testuser" \
@@ -123,7 +123,7 @@ export ID_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.${loca
 
 # Exchange token for AWS STS credentials (customer-2 → Airliner2Role → airliner-2)
 CREDS=$(aws sts assume-role-with-web-identity \
-  --endpoint-url "https://storage.${local.selected_sub}.${local.base_domain}" \
+  --endpoint-url "${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}" \
   --role-arn "arn:aws:iam::role/Airliner2Role" \
   --role-session-name "testuser-session-$(date +%s)" \
   --web-identity-token "$ID_TOKEN" \
@@ -133,7 +133,7 @@ CREDS=$(aws sts assume-role-with-web-identity \
 export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')
 export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')
 export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')
-export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.${local.base_domain}"
+export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
 
 # Use S3 API
 aws s3 ls
@@ -153,14 +153,14 @@ aws s3 ls s3://airliner-2/
 # Step 1: Admin creates bucket (if not already done)
 export AWS_ACCESS_KEY_ID="<admin_access_key>"
 export AWS_SECRET_ACCESS_KEY="<admin_secret_key>"
-export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.${local.base_domain}"
+export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
 
 aws s3 mb s3://airliner-1
 aws s3 ls
 
 # Step 2: Application accesses bucket via client credentials (client-app-1)
 # Obtain access token using client credentials (no username/password needed)
-export ACCESS_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.${local.base_domain}/realms/seaweedfs/protocol/openid-connect/token" \
+export ACCESS_TOKEN=$(curl -s -X POST "${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}/realms/seaweedfs/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=client-app-1" \
   -d "client_secret=<client_app_1_secret>" \
@@ -168,7 +168,7 @@ export ACCESS_TOKEN=$(curl -s -X POST "https://keycloak.${local.selected_sub}.${
 
 # Exchange for AWS STS credentials (customer-1 → Airliner1Role → airliner-1)
 CREDS=$(aws sts assume-role-with-web-identity \
-  --endpoint-url "https://storage.${local.selected_sub}.${local.base_domain}" \
+  --endpoint-url "${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}" \
   --role-arn "arn:aws:iam::role/Airliner1Role" \
   --role-session-name "app-session-$(date +%s)" \
   --web-identity-token "$ACCESS_TOKEN" \
@@ -178,7 +178,7 @@ CREDS=$(aws sts assume-role-with-web-identity \
 export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.Credentials.AccessKeyId')
 export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessKey')
 export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')
-export AWS_ENDPOINT_URL="https://storage.${local.selected_sub}.${local.base_domain}"
+export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
 
 # Step 3: Use S3 API with application credentials
 # List accessible buckets
@@ -204,7 +204,7 @@ aws s3 ls s3://airliner-1/
 
 To add users or change role assignments, use the Keycloak admin console:
 
-[Manage Users & Roles](https://keycloak.${local.selected_sub}.${local.base_domain}/admin/master/console/#/seaweedfs/users)
+[Manage Users & Roles](${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string}/master/console/#/seaweedfs/users)
 
 **To add new buckets and roles:**
 1. Create the bucket using admin credentials (Step 1)
@@ -240,10 +240,10 @@ ${var.k8s_platform == "azure" ? "- ✅ HTTP to HTTPS redirect enabled" : "- ✅ 
 
 ```bash
 # Keycloak health check
-curl https://keycloak.${local.selected_sub}.${local.base_domain}/health
+curl ${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}/health
 
 # Test S3 connectivity
-curl -I https://storage.${local.selected_sub}.${local.base_domain}
+curl -I ${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}
 ```
 
 ### View Building Block Status
@@ -256,9 +256,9 @@ curl -I https://storage.${local.selected_sub}.${local.base_domain}
 
 | Resource | Value |
 |----------|-------|
-| S3 Endpoint | `https://storage.${local.selected_sub}.${local.base_domain}` |
-| Keycloak URL | `https://keycloak.${local.selected_sub}.${local.base_domain}` |
-| Keycloak Admin | `https://keycloak.${local.selected_sub}.${local.base_domain}/admin` |
+| S3 Endpoint | `${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}` |
+| Keycloak URL | `${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}` |
+| Keycloak Admin | `${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string}` |
 | Namespace | `${local.unique_name}` |
 | Platform | `${var.k8s_platform}` |
 | Storage Class | `${local.storage_class_name}` |
@@ -273,17 +273,17 @@ EOT
 
 output "s3_endpoint" {
   description = "SeaweedFS S3 API endpoint"
-  value       = "https://storage.${local.selected_sub}.${local.base_domain}"
+  value       = meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string
 }
 
 output "keycloak_url" {
   description = "Keycloak authentication URL"
-  value       = "https://keycloak.${local.selected_sub}.${local.base_domain}"
+  value       = meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string
 }
 
 output "keycloak_admin_console_url" {
   description = "Keycloak admin console URL"
-  value       = "https://keycloak.${local.selected_sub}.${local.base_domain}/admin"
+  value       = meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string
 }
 
 output "project_name" {
@@ -303,5 +303,5 @@ output "namespace" {
 
 output "aws_cli_configure_command" {
   description = "Command to configure AWS CLI for SeaweedFS S3"
-  value       = "aws configure set endpoint_url https://storage.${local.selected_sub}.${local.base_domain} --profile seaweedfs"
+  value       = "aws configure set endpoint_url ${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string} --profile seaweedfs"
 }

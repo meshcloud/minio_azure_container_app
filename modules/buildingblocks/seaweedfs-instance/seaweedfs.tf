@@ -38,7 +38,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
         type    = "oidc"
         enabled = true
         config = {
-          issuer      = "https://${var.keycloak_domain}/realms/seaweedfs"
+          issuer      = "https://${ionoscloud_dns_record.keycloak[0].fqdn}/realms/seaweedfs"
           clientId    = "seaweedfs-s3"
           jwksUri     = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/certs"
           userInfoUri = "http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/seaweedfs/protocol/openid-connect/userinfo"
@@ -90,7 +90,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "oidc:iss"   = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:iss"   = "https://${ionoscloud_dns_record.keycloak[0].fqdn}/realms/seaweedfs"
                   "oidc:roles" = "customer-1"
                   "oidc:aud"   = "seaweedfs-s3"
                 }
@@ -110,7 +110,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "oidc:iss"   = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:iss"   = "https://${ionoscloud_dns_record.keycloak[0].fqdn}/realms/seaweedfs"
                   "oidc:roles" = "customer-2"
                   "oidc:aud"   = "seaweedfs-s3"
                 }
@@ -128,7 +128,7 @@ resource "kubernetes_secret" "seaweedfs_iam" {
               Action    = ["sts:AssumeRoleWithWebIdentity"]
               Condition = {
                 StringEquals = {
-                  "oidc:iss" = "https://${var.keycloak_domain}/realms/seaweedfs"
+                  "oidc:iss" = "https://${ionoscloud_dns_record.keycloak[0].fqdn}/realms/seaweedfs"
                   "oidc:aud" = "seaweedfs-s3"
                 }
               }
@@ -205,7 +205,7 @@ resource "kubernetes_deployment" "seaweedfs" {
           for_each = var.bunkerweb_cluster_ip != null ? [1] : []
           content {
             ip        = var.bunkerweb_cluster_ip
-            hostnames = [var.keycloak_domain, var.seaweedfs_domain]
+            hostnames = [ionoscloud_dns_record.keycloak[0].fqdn, ionoscloud_dns_record.seaweedfs[0].fqdn]
           }
         }
 
