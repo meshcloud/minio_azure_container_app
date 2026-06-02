@@ -3,7 +3,6 @@ locals {
   identifier  = lower(trim(replace(local.unique_name, "/[\\s\\-\\_]+/", "-"), "-"))
   ionos_sub   = local.unique_name
 
-
   # Platform-specific configs
   storage_class_name = var.k8s_platform == "azure" ? "default" : "ionos-enterprise-hdd"
 
@@ -29,7 +28,7 @@ resource "meshstack_project" "project" {
   }
   spec = {
     display_name = var.name
-    tags         = try(local.project_tags_config.prod, {})
+    tags         = yamldecode(var.project_tags_yaml)
   }
 }
 
