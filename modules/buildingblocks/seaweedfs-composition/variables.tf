@@ -14,6 +14,33 @@ variable "zone_name" {
   default     = "meshcloud.io"
 }
 
+variable "project_tags_yaml" {
+  type        = string
+  description = <<EOF
+YAML configuration for project tags that will be applied to dev and prod projects. Expected structure:
+
+```yaml
+dev:
+  key1:
+    - "value1"
+    - "value2"
+  key2:
+    - "value3"
+prod:
+  key1:
+    - "value4"
+  key2:
+    - "value5"
+    - "value6"
+```
+EOF
+  default     = <<EOF
+dev: {}
+prod: {}
+EOF
+
+
+
 variable "dns_record_type" {
   type        = string
   description = "DNS record type (A, CNAME, TXT)."

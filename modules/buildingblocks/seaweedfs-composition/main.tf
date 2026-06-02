@@ -29,11 +29,7 @@ resource "meshstack_project" "project" {
   }
   spec = {
     display_name = var.name
-    tags = {
-      Environment    = ["Dev"]
-      ProjectContact = [var.creator]
-      AccessLevel    = ["public"]
-    }
+    tags         = try(local.project_tags_config.prod, {})
   }
 }
 
