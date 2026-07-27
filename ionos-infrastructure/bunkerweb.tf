@@ -111,3 +111,20 @@ resource "helm_release" "bunkerweb" {
     }
   })]
 }
+
+resource "kubernetes_config_map" "bunkerweb_http_config" {
+  metadata {
+    name      = "bunkerweb-http-config"
+    namespace = var.bunkerweb_namespace
+
+    annotations = {
+      "bunkerweb.io/CONFIG_TYPE" = "http"
+    }
+  }
+
+  data = {
+    "server-names-hash.conf" = "server_names_hash_bucket_size 128;"
+  }
+
+  depends_on = [helm_release.bunkerweb]
+}

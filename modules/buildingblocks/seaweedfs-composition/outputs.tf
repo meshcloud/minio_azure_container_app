@@ -45,18 +45,16 @@ Your S3-compatible storage includes:
 - **URL**: [${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}](${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string})
 - **Admin Console**: [${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string}](${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string})
 - **Admin Username**: `admin`
-- **Admin Password**: Check building block outputs (sensitive)
+- **Admin Password**: `${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_password.value_string}`
 
 ### Credentials Reference
 
-Retrieve these from building block outputs:
-
 | Type | Username/Client ID | Password/Secret | Purpose |
 |------|-------------------|-----------------|---------|
-| **Admin (S3)** | `admin_access_key` | `admin_secret_key` | Bucket provisioning only |
-| **Test User** | `testuser` | (see outputs) | Interactive user testing |
-| **Service Account** | `client-app-1` | (see outputs) | Machine-to-machine for `customer-1` |
-| **Service Account** | `client-app-2` | (see outputs) | Machine-to-machine for `customer-2` |
+| **Admin (S3)** | `${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_access_key.value_string}` | `${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_secret_key.value_string}` | Bucket provisioning only |
+| **Test User** | `testuser` | `${meshstack_building_block_v2.namespace.status.outputs.keycloak_test_user_password.value_string}` | Interactive user testing |
+| **Service Account** | `client-app-1` | `${meshstack_building_block_v2.namespace.status.outputs.client_app_1_secret.value_string}` | Machine-to-machine for `customer-1` |
+| **Service Account** | `client-app-2` | `${meshstack_building_block_v2.namespace.status.outputs.client_app_2_secret.value_string}` | Machine-to-machine for `customer-2` |
 
 ---
 
@@ -67,9 +65,8 @@ Retrieve these from building block outputs:
 **Administrators** provision buckets using **static admin credentials**. These credentials bypass OIDC and should only be used for initial setup.
 
 ```bash
-# Configure AWS CLI with admin credentials (retrieve from building block outputs)
-export AWS_ACCESS_KEY_ID="<admin_access_key>"
-export AWS_SECRET_ACCESS_KEY="<admin_secret_key>"
+export AWS_ACCESS_KEY_ID="${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_access_key.value_string}"
+export AWS_SECRET_ACCESS_KEY="${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_secret_key.value_string}"
 export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
 
 # Create buckets
@@ -83,7 +80,7 @@ aws s3 ls
 **Alternative: MinIO Client for advanced management**
 
 ```bash
-mc alias set seaweedfs ${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string} <admin_access_key> <admin_secret_key>
+mc alias set seaweedfs ${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string} ${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_access_key.value_string} ${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_secret_key.value_string}
 mc mb seaweedfs/airliner-1
 ```
 
@@ -117,7 +114,7 @@ export ID_TOKEN=$(curl -s -X POST "${meshstack_building_block_v2.namespace.statu
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
   -d "username=testuser" \
-  -d "password=<testuser_password>" \
+  -d "password=${meshstack_building_block_v2.namespace.status.outputs.keycloak_test_user_password.value_string}" \
   -d "client_id=seaweedfs-client" \
   -d "scope=openid profile" | jq -r '.id_token')
 
@@ -151,9 +148,10 @@ aws s3 ls s3://airliner-2/
 
 ```bash
 # Step 1: Admin creates bucket (if not already done)
-export AWS_ACCESS_KEY_ID="<admin_access_key>"
-export AWS_SECRET_ACCESS_KEY="<admin_secret_key>"
+export AWS_ACCESS_KEY_ID="${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_access_key.value_string}"
+export AWS_SECRET_ACCESS_KEY="${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_secret_key.value_string}"
 export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
+export AWS_DEFAULT_REGION="us-east-1"
 
 aws s3 mb s3://airliner-1
 aws s3 ls
@@ -163,7 +161,7 @@ aws s3 ls
 export ACCESS_TOKEN=$(curl -s -X POST "${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}/realms/seaweedfs/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=client-app-1" \
-  -d "client_secret=<client_app_1_secret>" \
+  -d "client_secret=${meshstack_building_block_v2.namespace.status.outputs.client_app_1_secret.value_string}" \
   -d "grant_type=client_credentials" | jq -r '.access_token')
 
 # Exchange for AWS STS credentials (customer-1 → Airliner1Role → airliner-1)
