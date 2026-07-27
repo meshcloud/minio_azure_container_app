@@ -219,7 +219,9 @@ resource "kubernetes_deployment" "seaweedfs" {
             "-s3.port=8333",
             "-dir=/data",
             "-s3.config=/etc/seaweed/identity/identity.json",
-            "-s3.iam.config=/etc/seaweed/iam/oidc.json"
+            "-s3.iam.config=/etc/seaweed/iam/oidc.json",
+            "-volume.max=50",
+            "-master.volumeSizeLimitMB=1000"
           ]
 
           port {

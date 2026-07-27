@@ -115,7 +115,7 @@ export ID_TOKEN=$(curl -s -X POST "${meshstack_building_block_v2.namespace.statu
   -d "grant_type=password" \
   -d "username=testuser" \
   -d "password=${meshstack_building_block_v2.namespace.status.outputs.keycloak_test_user_password.value_string}" \
-  -d "client_id=seaweedfs-client" \
+  -d "client_id=seaweedfs-s3" \
   -d "scope=openid profile" | jq -r '.id_token')
 
 # Exchange token for AWS STS credentials (customer-2 → Airliner2Role → airliner-2)
@@ -132,9 +132,11 @@ export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.Credentials.SecretAccessK
 export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Credentials.SessionToken')
 export AWS_ENDPOINT_URL="${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_string}"
 
-# Use S3 API
-aws s3 ls
-aws s3 cp file.txt s3://airliner-2/
+# Upload a file
+echo "Hello from testuser!" > test-file.txt
+aws s3 cp test-file.txt s3://airliner-2/
+
+# List objects in bucket
 aws s3 ls s3://airliner-2/
 ```
 
