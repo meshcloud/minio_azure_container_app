@@ -18,7 +18,7 @@ variable "aks_cluster_name" {
 
 variable "k8s_version" {
   type        = string
-  default     = "1.32.10"
+  default     = "1.35.6"
   description = "Kubernetes version"
 }
 
@@ -80,4 +80,9 @@ variable "bunkerweb_storage_class_name" {
   type        = string
   default     = "managed-csi"
   description = "StorageClass for BunkerWeb MariaDB and Redis PVCs (managed-csi = Azure Disk)"
+}
+
+variable "dns_zone_name" {
+  type        = string
+  description = "Azure DNS zone name for the subdomain delegated from Route53 (e.g. 'azure.msh.host')"
 }

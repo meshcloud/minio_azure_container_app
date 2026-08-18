@@ -28,3 +28,18 @@ output "bunkerweb_ingress_class_name" {
   value       = "bunkerweb"
   description = "Ingress class name for the shared BunkerWeb deployment"
 }
+
+output "dns_zone_name" {
+  value       = azurerm_dns_zone.main.name
+  description = "Azure DNS zone name — pass to az-seaweedfs-instance as dns_zone_name"
+}
+
+output "dns_zone_resource_group" {
+  value       = azurerm_resource_group.main.name
+  description = "Resource group of the Azure DNS zone — pass to az-seaweedfs-instance as dns_zone_resource_group"
+}
+
+output "azure_dns_nameservers" {
+  value       = azurerm_dns_zone.main.name_servers
+  description = "Add these as NS record values in Route53 for the delegated subdomain"
+}

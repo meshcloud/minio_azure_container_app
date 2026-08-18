@@ -36,6 +36,8 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
+  oidc_issuer_enabled = true
+
   identity {
     type = "SystemAssigned"
   }
@@ -48,12 +50,6 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 }
 
-data "azurerm_kubernetes_cluster" "main" {
-  name                = azurerm_kubernetes_cluster.main.name
-  resource_group_name = azurerm_kubernetes_cluster.main.resource_group_name
-
-  depends_on = [azurerm_kubernetes_cluster.main]
-}
 
 resource "azurerm_role_assignment" "aks_network_contributor" {
   scope                = azurerm_resource_group.main.id
