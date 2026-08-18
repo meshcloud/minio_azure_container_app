@@ -255,7 +255,7 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
         selectable_values = null
         sensitive = {
           argument = {
-            secret_value   = null # sensitive write-only — upload via meshstack UI
+            secret_value   = var.az_kubeconfig_content
             secret_version = null
           }
           default_value = null
@@ -313,6 +313,16 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
         display_name    = "SeaweedFS Admin Secret Key"
         type            = "STRING"
       }
+      client_app_1_secret = {
+        assignment_type = "NONE"
+        display_name    = "Client App 1 Secret"
+        type            = "STRING"
+      }
+      client_app_2_secret = {
+        assignment_type = "NONE"
+        display_name    = "Client App 2 Secret"
+        type            = "STRING"
+      }
       aws_cli_configure_command = {
         assignment_type = "NONE"
         display_name    = "AWS CLI Configure Command"
@@ -327,7 +337,7 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
     permissions = []
     runner_ref = {
       kind = "meshBuildingBlockRunner"
-      uuid = "66ddc814-1e69-4dad-b5f1-3a5bce51c01f"
+      uuid = "98520496-627d-43e6-82da-ce499179ff3f"
     }
   }
 }

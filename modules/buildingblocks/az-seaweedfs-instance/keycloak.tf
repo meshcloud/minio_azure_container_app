@@ -140,7 +140,7 @@ resource "kubernetes_deployment" "keycloak" {
 
           env {
             name  = "KC_HOSTNAME"
-            value = "https://${ionoscloud_dns_record.keycloak[0].fqdn}"
+            value = "https://${local.keycloak_fqdn}"
           }
 
           env {

@@ -11,7 +11,7 @@ locals {
 resource "azurerm_dns_a_record" "seaweedfs" {
   count               = local.create_dns_records ? 1 : 0
   name                = var.seaweedfs_domain
-  zone_name           = azurerm_dns_zone.this.name
+  zone_name           = var.dns_zone_name
   resource_group_name = var.dns_zone_resource_group
   ttl                 = 300
   records             = [var.worker_node_ip]
@@ -20,7 +20,7 @@ resource "azurerm_dns_a_record" "seaweedfs" {
 resource "azurerm_dns_a_record" "keycloak" {
   count               = local.create_dns_records ? 1 : 0
   name                = var.keycloak_domain
-  zone_name           = azurerm_dns_zone.this.name
+  zone_name           = var.dns_zone_name
   resource_group_name = var.dns_zone_resource_group
   ttl                 = 300
   records             = [var.worker_node_ip]

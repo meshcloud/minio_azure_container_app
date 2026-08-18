@@ -53,8 +53,8 @@ Your S3-compatible storage includes:
 |------|-------------------|-----------------|---------|
 | **Admin (S3)** | `${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_access_key.value_string}` | `${meshstack_building_block_v2.namespace.status.outputs.seaweedfs_admin_secret_key.value_string}` | Bucket provisioning only |
 | **Test User** | `testuser` | `${meshstack_building_block_v2.namespace.status.outputs.keycloak_test_user_password.value_string}` | Interactive user testing |
-| **Service Account** | `client-app-1` | `${meshstack_building_block_v2.namespace.status.outputs.client_app_1_secret.value_string}` | Machine-to-machine for `customer-1` |
-| **Service Account** | `client-app-2` | `${meshstack_building_block_v2.namespace.status.outputs.client_app_2_secret.value_string}` | Machine-to-machine for `customer-2` |
+| **Service Account** | `client-app-1` | `${try(meshstack_building_block_v2.namespace.status.outputs.client_app_1_secret.value_string, "see instance BB outputs")}` | Machine-to-machine for `customer-1` |
+| **Service Account** | `client-app-2` | `${try(meshstack_building_block_v2.namespace.status.outputs.client_app_2_secret.value_string, "see instance BB outputs")}` | Machine-to-machine for `customer-2` |
 
 ---
 
@@ -163,7 +163,7 @@ aws s3 ls
 export ACCESS_TOKEN=$(curl -s -X POST "${meshstack_building_block_v2.namespace.status.outputs.keycloak_url.value_string}/realms/seaweedfs/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=client-app-1" \
-  -d "client_secret=${meshstack_building_block_v2.namespace.status.outputs.client_app_1_secret.value_string}" \
+  -d "client_secret=${try(meshstack_building_block_v2.namespace.status.outputs.client_app_1_secret.value_string, "see instance BB outputs")}" \
   -d "grant_type=client_credentials" | jq -r '.access_token')
 
 # Exchange for AWS STS credentials (customer-1 → Airliner1Role → airliner-1)
