@@ -261,7 +261,7 @@ curl -I ${meshstack_building_block_v2.namespace.status.outputs.s3_api_url.value_
 | Keycloak Admin | `${meshstack_building_block_v2.namespace.status.outputs.keycloak_admin_console_url.value_string}` |
 | Namespace | `${local.unique_name}` |
 | Platform | `Azure (AKS)` |
-| Storage Class | `${local.storage_class_name}` |
+| Storage Class | `default` |
 
 ---
 
