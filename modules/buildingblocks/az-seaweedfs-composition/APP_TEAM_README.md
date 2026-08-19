@@ -1,12 +1,12 @@
-# S3 Storage Service (IONOS)
+# S3 Storage Service (Azure AKS)
 
 ## What is it?
 
-The **IONOS S3 Storage Service** gives your team a fully managed, self-hosted S3-compatible object storage environment on IONOS Kubernetes — with Keycloak OIDC authentication, BunkerWeb WAF, and automatic DNS setup. No cloud vendor lock-in, no shared buckets.
+The **Azure S3 Storage Service** gives your team a fully managed, self-hosted S3-compatible object storage environment on Azure AKS — with Keycloak OIDC authentication, BunkerWeb WAF, and automatic DNS setup. No cloud vendor lock-in, no shared buckets.
 
 ## When to use it?
 
-- You need private S3-compatible storage on IONOS infrastructure
+- You need private S3-compatible storage on Azure infrastructure
 - You want OIDC-based authentication with role-based bucket access
 - You need enterprise security (WAF, TLS, IP whitelisting) on your storage endpoints
 
@@ -15,12 +15,12 @@ The **IONOS S3 Storage Service** gives your team a fully managed, self-hosted S3
 | Resource | Details |
 |----------|---------|
 | meshProject + meshTenant | Dedicated project in the `storage-service.storage` platform |
-| IONOS DNS Records | `<seaweedfs-domain>.<your-domain>` and `<keycloak-domain>.<your-domain>` |
+| Azure DNS A Records | `<seaweedfs-domain>.<your-domain>` and `<keycloak-domain>.<your-domain>` |
 | Kubernetes Namespace | Isolated namespace for all storage resources |
-| SeaweedFS | S3 server with 10Gi persistent volume (`ionos-enterprise-hdd`) |
+| SeaweedFS | S3 server with 10Gi persistent volume (`default` storage class) |
 | Keycloak | OIDC provider with pre-configured realm, 2 service accounts, 1 test user |
 | MariaDB | Keycloak database with 5Gi persistent volume |
-| BunkerWeb Ingress | WAF + Let's Encrypt TLS (DNS challenge) on both endpoints |
+| BunkerWeb Ingress | WAF + Let's Encrypt TLS (HTTP challenge) on both endpoints |
 
 ## Access & Credentials
 
@@ -81,20 +81,21 @@ CREDS=$(aws sts assume-role-with-web-identity \
 
 ## Platform Details
 
-| Setting              | Value                  |
-|----------------------|------------------------|
-| Platform             | IONOS Kubernetes       |
-| Storage Class        | `ionos-enterprise-hdd` |
-| Let's Encrypt        | DNS challenge          |
-| HTTP→HTTPS Redirect  | Disabled               |
+| Setting              | Value             |
+|----------------------|-------------------|
+| Platform             | Azure AKS         |
+| Storage Class        | `default`         |
+| Let's Encrypt        | HTTP challenge    |
+| HTTP→HTTPS Redirect  | Enabled           |
+| DNS Zone             | `<your-domain>` (delegated from Route53) |
 
 ## Shared Responsibilities
 
 | Responsibility                                    | Platform Team | App Team |
 |---------------------------------------------------|:---:|:---:|
-| Provision IONOS Kubernetes cluster                | ✅ | ❌ |
+| Provision Azure AKS cluster                       | ✅ | ❌ |
 | Deploy SeaweedFS, Keycloak, MariaDB, BunkerWeb    | ✅ | ❌ |
-| Manage IONOS DNS records and TLS certificates     | ✅ | ❌ |
+| Manage Azure DNS records and TLS certificates     | ✅ | ❌ |
 | Create and manage S3 buckets                      | ❌ | ✅ |
 | Manage object lifecycle (upload/download/delete)  | ❌ | ✅ |
 | Assign users to Keycloak realm roles              | ❌ | ✅ |
