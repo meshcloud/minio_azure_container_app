@@ -1,3 +1,13 @@
+variable "cloud_provider" {
+  type        = string
+  description = "Target cloud provider: 'ionos' or 'azure'."
+
+  validation {
+    condition     = contains(["ionos", "azure"], var.cloud_provider)
+    error_message = "cloud_provider must be 'ionos' or 'azure'."
+  }
+}
+
 variable "name" {
   type        = string
   description = "Base name used for generating resource names."
@@ -8,58 +18,23 @@ variable "name" {
   }
 }
 
-variable "zone_name" {
-  type        = string
-  description = "DNS zone name. Use 'meshcloud.io' for Azure, 'ionos.msh.host' for IONOS."
-  default     = "meshcloud.io"
-}
-
 variable "project_tags_yaml" {
   type        = string
   description = <<EOF
-YAML configuration for project tags that will be applied to dev and prod projects. Expected structure:
+YAML configuration for project tags. Expected structure:
 
 ```yaml
  key1:
   - "value1"
-  - "value2"
  key2:
-  - "value3"
+  - "value2"
 ```
 EOF
 }
 
-variable "dns_record_type" {
-  type        = string
-  description = "DNS record type (A, CNAME, TXT)."
-  default     = "A"
-}
-
-variable "ttl" {
-  type        = string
-  description = "DNS record TTL in seconds."
-  default     = "300"
-}
-
-variable "k8s_platform" {
-  type        = string
-  description = "Target platform type: 'azure' or 'ionos'. Determines redirect behavior for Let's Encrypt compatibility."
-  default     = "ionos"
-
-  validation {
-    condition     = contains(["azure", "ionos"], var.k8s_platform)
-    error_message = "platform_type must be either 'azure' or 'ionos'."
-  }
-}
-
 variable "creator" {
   type        = string
-  description = "creator of the resources"
-}
-
-variable "ionos_public_ip" {
-  type        = string
-  description = "Public IP address of the IONOS Network Load Balancer. Used for creating DNS A records that point to the IONOS cluster."
+  description = "Creator JSON (must contain an 'email' field for Let's Encrypt notifications)."
 }
 
 variable "allowed_ip_addresses" {
@@ -90,5 +65,23 @@ variable "landing_zone_identifier" {
 
 variable "namespace_definition_version_uuid" {
   type        = string
-  description = "UUID of the namespace building block definition version."
+  description = "UUID of the instance building block definition version (IONOS or Azure depending on cloud_provider)."
+}
+
+variable "worker_node_ip" {
+  type        = string
+  description = "Public IP of the load balancer in front of BunkerWeb (IONOS NLB or AKS LoadBalancer)."
+  default     = ""
+}
+
+variable "dns_zone_name" {
+  type        = string
+  description = "Azure DNS zone name. Required when cloud_provider = 'azure'."
+  default     = ""
+}
+
+variable "dns_zone_resource_group" {
+  type        = string
+  description = "Resource group of the Azure DNS zone. Required when cloud_provider = 'azure'."
+  default     = ""
 }
