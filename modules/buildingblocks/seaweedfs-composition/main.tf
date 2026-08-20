@@ -6,6 +6,8 @@ locals {
 
   creator_data  = jsondecode(var.creator)
   creator_email = local.creator_data.email
+
+  project_tags = try(yamldecode(var.project_tags_yaml), {})
 }
 
 resource "random_string" "suffix" {
@@ -21,7 +23,7 @@ resource "meshstack_project" "project" {
   }
   spec = {
     display_name = var.name
-    tags         = yamldecode(var.project_tags_yaml)
+    tags         = local.project_tags
   }
 }
 
@@ -53,16 +55,16 @@ resource "meshstack_building_block" "ionos_seaweedfs_namespace" {
     }
     display_name = "Namespace ${local.unique_name}"
     inputs = {
-      namespace                 = { value_string = local.unique_name }
-      storage_class_name        = { value_string = "ionos-enterprise-hdd" }
-      seaweedfs_domain          = { value_string = "storage.${local.unique_name}" }
-      keycloak_domain           = { value_string = "keycloak.${local.unique_name}" }
-      email_lets_encrypt        = { value_string = local.creator_email }
-      allowed_ip_addresses      = { value_string = var.allowed_ip_addresses }
-      redirect_http_to_https    = { value_bool = false }
-      lets_encrypt_challenge    = { value_string = "dns" }
-      lets_encrypt_dns_provider = { value_string = "ionoscloud" }
-      worker_node_ip            = { value_string = var.ionos_worker_node_ip }
+      namespace                 = { value = jsonencode(local.unique_name) }
+      storage_class_name        = { value = jsonencode("ionos-enterprise-hdd") }
+      seaweedfs_domain          = { value = jsonencode("storage.${local.unique_name}") }
+      keycloak_domain           = { value = jsonencode("keycloak.${local.unique_name}") }
+      email_lets_encrypt        = { value = jsonencode(local.creator_email) }
+      allowed_ip_addresses      = { value = jsonencode(var.allowed_ip_addresses) }
+      redirect_http_to_https    = { value = jsonencode(false) }
+      lets_encrypt_challenge    = { value = jsonencode("dns") }
+      lets_encrypt_dns_provider = { value = jsonencode("ionoscloud") }
+      worker_node_ip            = { value = jsonencode(var.ionos_worker_node_ip) }
     }
   }
 }
@@ -79,17 +81,17 @@ resource "meshstack_building_block" "az_seaweedfs_namespace" {
     }
     display_name = "Namespace ${local.unique_name}"
     inputs = {
-      namespace               = { value_string = local.unique_name }
-      storage_class_name      = { value_string = "default" }
-      seaweedfs_domain        = { value_string = "storage.${local.unique_name}" }
-      keycloak_domain         = { value_string = "keycloak.${local.unique_name}" }
-      email_lets_encrypt      = { value_string = local.creator_email }
-      allowed_ip_addresses    = { value_string = var.allowed_ip_addresses }
-      redirect_http_to_https  = { value_bool = true }
-      lets_encrypt_challenge  = { value_string = "http" }
-      worker_node_ip          = { value_string = var.azure_worker_node_ip }
-      dns_zone_name           = { value_string = var.dns_zone_name }
-      dns_zone_resource_group = { value_string = var.dns_zone_resource_group }
+      namespace              = { value = jsonencode(local.unique_name) }
+      storage_class_name     = { value = jsonencode("default") }
+      seaweedfs_domain       = { value = jsonencode("storage.${local.unique_name}") }
+      keycloak_domain        = { value = jsonencode("keycloak.${local.unique_name}") }
+      email_lets_encrypt     = { value = jsonencode(local.creator_email) }
+      allowed_ip_addresses   = { value = jsonencode(var.allowed_ip_addresses) }
+      redirect_http_to_https = { value = jsonencode(true) }
+      lets_encrypt_challenge = { value = jsonencode("http") }
+      #worker_node_ip          = { value = jsonencode(var.azure_worker_node_ip) }
+      dns_zone_name           = { value = jsonencode(var.dns_zone_name) }
+      dns_zone_resource_group = { value = jsonencode(var.dns_zone_resource_group) }
     }
   }
 }
