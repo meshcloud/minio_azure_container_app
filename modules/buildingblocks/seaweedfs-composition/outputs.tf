@@ -1,6 +1,7 @@
 locals {
-  namespace_bb   = local.is_azure ? meshstack_building_block_v2.az_seaweedfs_namespace[0] : meshstack_building_block_v2.ionos_seaweedfs_namespace[0]
-  storage_class  = local.is_azure ? "default" : "ionos-enterprise-hdd"
+  namespace_bb      = local.is_azure ? meshstack_building_block_v2.az_seaweedfs_namespace[0] : meshstack_building_block_v2.ionos_seaweedfs_namespace[0]
+  storage_class     = local.is_azure ? "default" : "ionos-enterprise-hdd"
+  active_worker_ip  = local.is_azure ? var.azure_worker_node_ip : var.ionos_worker_node_ip
 }
 
 output "summary" {
@@ -24,8 +25,8 @@ The following DNS A records are automatically created pointing to the load balan
 
 | Domain | Target IP |
 |--------|-----------|
-| `${local.namespace_bb.status.outputs.s3_api_url.value_string}` | `${var.worker_node_ip}` |
-| `${local.namespace_bb.status.outputs.keycloak_url.value_string}` | `${var.worker_node_ip}` |
+| `${local.namespace_bb.status.outputs.s3_api_url.value_string}` | `${local.active_worker_ip}` |
+| `${local.namespace_bb.status.outputs.keycloak_url.value_string}` | `${local.active_worker_ip}` |
 
 ---
 

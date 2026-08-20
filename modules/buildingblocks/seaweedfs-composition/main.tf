@@ -41,7 +41,7 @@ resource "meshstack_building_block_v2" "ionos_seaweedfs_namespace" {
   count = local.is_azure ? 0 : 1
   spec = {
     building_block_definition_version_ref = {
-      uuid = var.namespace_definition_version_uuid
+      uuid = var.ionos_instance_version_uuid
     }
     target_ref = {
       kind = "meshTenant"
@@ -58,7 +58,7 @@ resource "meshstack_building_block_v2" "ionos_seaweedfs_namespace" {
       redirect_http_to_https    = { value_bool = false }
       lets_encrypt_challenge    = { value_string = "dns" }
       lets_encrypt_dns_provider = { value_string = "ionoscloud" }
-      worker_node_ip            = { value_string = var.worker_node_ip }
+      worker_node_ip            = { value_string = var.ionos_worker_node_ip }
     }
   }
 }
@@ -67,7 +67,7 @@ resource "meshstack_building_block_v2" "az_seaweedfs_namespace" {
   count = local.is_azure ? 1 : 0
   spec = {
     building_block_definition_version_ref = {
-      uuid = var.namespace_definition_version_uuid
+      uuid = var.azure_instance_version_uuid
     }
     target_ref = {
       kind = "meshTenant"
@@ -83,7 +83,7 @@ resource "meshstack_building_block_v2" "az_seaweedfs_namespace" {
       allowed_ip_addresses    = { value_string = var.allowed_ip_addresses }
       redirect_http_to_https  = { value_bool = true }
       lets_encrypt_challenge  = { value_string = "http" }
-      worker_node_ip          = { value_string = var.worker_node_ip }
+      worker_node_ip          = { value_string = var.azure_worker_node_ip }
       dns_zone_name           = { value_string = var.dns_zone_name }
       dns_zone_resource_group = { value_string = var.dns_zone_resource_group }
     }

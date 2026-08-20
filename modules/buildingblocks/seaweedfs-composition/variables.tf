@@ -30,6 +30,7 @@ YAML configuration for project tags. Expected structure:
   - "value2"
 ```
 EOF
+  default     = "null"
 }
 
 variable "creator" {
@@ -63,14 +64,27 @@ variable "landing_zone_identifier" {
   description = "Identifier of the landing zone to use for the tenant."
 }
 
-variable "namespace_definition_version_uuid" {
+variable "ionos_instance_version_uuid" {
   type        = string
-  description = "UUID of the instance building block definition version (IONOS or Azure depending on cloud_provider)."
+  description = "UUID of the IONOS instance building block definition version."
+  default     = ""
 }
 
-variable "worker_node_ip" {
+variable "azure_instance_version_uuid" {
   type        = string
-  description = "Public IP of the load balancer in front of BunkerWeb (IONOS NLB or AKS LoadBalancer)."
+  description = "UUID of the Azure instance building block definition version."
+  default     = ""
+}
+
+variable "ionos_worker_node_ip" {
+  type        = string
+  description = "Public IP of the IONOS Network Load Balancer in front of BunkerWeb."
+  default     = ""
+}
+
+variable "azure_worker_node_ip" {
+  type        = string
+  description = "Public IP of the AKS LoadBalancer in front of BunkerWeb."
   default     = ""
 }
 
