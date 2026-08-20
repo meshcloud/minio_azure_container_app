@@ -27,6 +27,12 @@ resource "meshstack_project" "project" {
   }
 }
 
+# Resolve the platform identifier (e.g. "storage-service-test.global") to its
+# UUID — the tenant API requires spec.platformRef.uuid to be a real UUID.
+data "meshstack_platforms" "target" {
+  identifier = var.platform_identifier
+}
+
 resource "meshstack_tenant" "tenant" {
   wait_for_completion = false
   metadata = {
@@ -34,9 +40,7 @@ resource "meshstack_tenant" "tenant" {
     owned_by_project   = meshstack_project.project.metadata.name
   }
   spec = {
-    platform_ref = {
-      uuid = var.platform_identifier
-    }
+    platform_ref = one(data.meshstack_platforms.target.platforms).ref
     landing_zone_ref = {
       name = var.landing_zone_identifier
     }
