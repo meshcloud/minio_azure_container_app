@@ -4,19 +4,19 @@ resource "meshstack_building_block_definition" "az_seaweedfs_composition" {
     tags               = {}
   }
   spec = {
-    description              = "The Azure S3 Storage Service — SeaweedFS on AKS with Keycloak OIDC and BunkerWeb WAF."
-    display_name             = "Azure S3 Storage Service"
-    documentation_url        = null
-    notification_subscribers = ["user:fnowarre@meshcloud.io"]
-    readme                   = "# Azure S3 Storage Service\n\nProvisions a SeaweedFS S3-compatible storage environment on Azure AKS with Keycloak OIDC authentication and BunkerWeb WAF protection.\n\n## DNS\n\nSubdomains are created automatically in the `az-flo.msh.host` Azure DNS zone delegated from Route53.\n"
-    run_transparency         = false
-    support_url              = null
-    supported_platforms      = null
-    symbol                   = null
-    target_type              = "WORKSPACE_LEVEL"
+    description               = "The Azure S3 Storage Service — SeaweedFS on AKS with Keycloak OIDC and BunkerWeb WAF."
+    display_name              = "Azure S3 Storage Service"
+    documentation_url         = null
+    notification_subscribers  = ["user:fnowarre@meshcloud.io"]
+    readme                    = "# Azure S3 Storage Service\n\nProvisions a SeaweedFS S3-compatible storage environment on Azure AKS with Keycloak OIDC authentication and BunkerWeb WAF protection.\n\n## DNS\n\nSubdomains are created automatically in the `az-flo.msh.host` Azure DNS zone delegated from Route53.\n"
+    run_transparency          = false
+    support_url               = null
+    supported_platforms       = null
+    symbol                    = null
+    target_type               = "WORKSPACE_LEVEL"
     use_in_landing_zones_only = false
   }
-  version_latest_release = {}
+  #version_latest_release = {}
   version_spec = {
     deletion_mode   = "DELETE"
     dependency_refs = []
@@ -236,7 +236,7 @@ resource "meshstack_building_block_definition" "az_seaweedfs_composition" {
     permissions = ["BUILDINGBLOCKDEFINITION_LIST", "BUILDINGBLOCKDEFINITION_SAVE", "BUILDINGBLOCK_DELETE", "BUILDINGBLOCK_LIST", "BUILDINGBLOCK_SAVE", "LANDINGZONE_LIST", "PROJECT_LIST", "PROJECT_SAVE", "TENANT_LIST", "TENANT_SAVE", "WORKSPACE_LIST"]
     runner_ref = {
       kind = "meshBuildingBlockRunner"
-      uuid = "66ddc814-1e69-4dad-b5f1-3a5bce51c01f"
+      uuid = "98520496-627d-43e6-82da-ce499179ff3f"
     }
   }
 }

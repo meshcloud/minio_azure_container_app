@@ -139,7 +139,7 @@ resource "meshstack_building_block_definition" "howto_example" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      ionos_kubeconfig.yaml = {
+      "ionos_kubeconfig.yaml" = {
         argument          = null
         assignment_type   = "STATIC"
         default_value     = null
@@ -149,7 +149,7 @@ resource "meshstack_building_block_definition" "howto_example" {
         selectable_values = null
         sensitive = {
           argument = {
-            secret_value   = null # sensitive write-only
+            secret_value   = var.ionos_kubeconfig_content
             secret_version = "sha256:fb26543645ec3e5d662a68c48b78208eaaaf2dd40be3d31b7d81e3f41afc195e"
           }
           default_value = null

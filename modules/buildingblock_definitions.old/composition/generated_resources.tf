@@ -20,8 +20,7 @@ resource "meshstack_building_block_definition" "howto_example" {
     target_type               = "WORKSPACE_LEVEL"
     use_in_landing_zones_only = false
   }
-  version_latest_release = {
-  }
+  # version_latest_release = {}
   version_spec = {
     deletion_mode = "DELETE"
     dependency_refs = [
