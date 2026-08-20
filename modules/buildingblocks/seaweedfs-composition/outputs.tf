@@ -1,7 +1,7 @@
 locals {
-  namespace_bb      = local.is_azure ? meshstack_building_block_v2.az_seaweedfs_namespace[0] : meshstack_building_block_v2.ionos_seaweedfs_namespace[0]
-  storage_class     = local.is_azure ? "default" : "ionos-enterprise-hdd"
-  active_worker_ip  = local.is_azure ? var.azure_worker_node_ip : var.ionos_worker_node_ip
+  namespace_bb     = local.is_azure ? meshstack_building_block.az_seaweedfs_namespace[0] : meshstack_building_block.ionos_seaweedfs_namespace[0]
+  storage_class    = local.is_azure ? "default" : "ionos-enterprise-hdd"
+  active_worker_ip = local.is_azure ? var.azure_worker_node_ip : var.ionos_worker_node_ip
 }
 
 output "summary" {
@@ -14,7 +14,7 @@ output "summary" {
 This composition has set up the following resources in workspace `${var.owned_by_workspace}`:
 
 @project[${var.owned_by_workspace}.${meshstack_project.project.metadata.name}]\
-&nbsp;&nbsp;&nbsp;&nbsp;@tenant[${meshstack_tenant_v4.tenant.metadata.uuid}]\
+&nbsp;&nbsp;&nbsp;&nbsp;@tenant[${meshstack_tenant.tenant.metadata.uuid}]\
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@buildingblock[${local.namespace_bb.metadata.uuid}]
 
 ---
@@ -205,7 +205,7 @@ output "project_name" {
 
 output "tenant_uuid" {
   description = "Created meshTenant UUID"
-  value       = meshstack_tenant_v4.tenant.metadata.uuid
+  value       = meshstack_tenant.tenant.metadata.uuid
 }
 
 output "namespace" {

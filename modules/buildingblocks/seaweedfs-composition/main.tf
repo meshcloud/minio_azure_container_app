@@ -32,8 +32,12 @@ resource "meshstack_tenant" "tenant" {
     owned_by_project   = meshstack_project.project.metadata.name
   }
   spec = {
-    platform_identifier     = var.platform_identifier
-    landing_zone_identifier = var.landing_zone_identifier
+    platform_ref = {
+      uuid = var.platform_identifier
+    }
+    landing_zone_ref = {
+      name = var.landing_zone_identifier
+    }
   }
 }
 
@@ -45,7 +49,7 @@ resource "meshstack_building_block" "ionos_seaweedfs_namespace" {
     }
     target_ref = {
       kind = "meshTenant"
-      uuid = meshstack_tenant_v4.tenant.metadata.uuid
+      uuid = meshstack_tenant.tenant.metadata.uuid
     }
     display_name = "Namespace ${local.unique_name}"
     inputs = {
@@ -71,7 +75,7 @@ resource "meshstack_building_block" "az_seaweedfs_namespace" {
     }
     target_ref = {
       kind = "meshTenant"
-      uuid = meshstack_tenant_v4.tenant.metadata.uuid
+      uuid = meshstack_tenant.tenant.metadata.uuid
     }
     display_name = "Namespace ${local.unique_name}"
     inputs = {
