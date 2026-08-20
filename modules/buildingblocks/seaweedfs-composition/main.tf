@@ -25,7 +25,7 @@ resource "meshstack_project" "project" {
   }
 }
 
-resource "meshstack_tenant_v4" "tenant" {
+resource "meshstack_tenant" "tenant" {
   wait_for_completion = false
   metadata = {
     owned_by_workspace = meshstack_project.project.metadata.owned_by_workspace
@@ -37,7 +37,7 @@ resource "meshstack_tenant_v4" "tenant" {
   }
 }
 
-resource "meshstack_building_block_v2" "ionos_seaweedfs_namespace" {
+resource "meshstack_building_block" "ionos_seaweedfs_namespace" {
   count = local.is_azure ? 0 : 1
   spec = {
     building_block_definition_version_ref = {
@@ -63,7 +63,7 @@ resource "meshstack_building_block_v2" "ionos_seaweedfs_namespace" {
   }
 }
 
-resource "meshstack_building_block_v2" "az_seaweedfs_namespace" {
+resource "meshstack_building_block" "az_seaweedfs_namespace" {
   count = local.is_azure ? 1 : 0
   spec = {
     building_block_definition_version_ref = {
