@@ -62,17 +62,16 @@ resource "meshstack_building_block" "ionos_seaweedfs_namespace" {
       uuid = meshstack_tenant.tenant.metadata.uuid
     }
     display_name = "Storage ${local.unique_name}"
+    # Only USER_INPUT inputs are set here. STATIC inputs (storage_class_name,
+    # lets_encrypt_*, redirect_http_to_https, worker_node_ip, …) come from the
+    # building block definition — passing them here makes the provider drop them
+    # ("element has vanished") on apply.
     inputs = {
-      namespace                 = { value = jsonencode(local.unique_name) }
-      storage_class_name        = { value = jsonencode("ionos-enterprise-hdd") }
-      seaweedfs_domain          = { value = jsonencode("storage.${local.unique_name}") }
-      keycloak_domain           = { value = jsonencode("keycloak.${local.unique_name}") }
-      email_lets_encrypt        = { value = jsonencode(local.creator_email) }
-      allowed_ip_addresses      = { value = jsonencode(var.allowed_ip_addresses) }
-      redirect_http_to_https    = { value = jsonencode(false) }
-      lets_encrypt_challenge    = { value = jsonencode("dns") }
-      lets_encrypt_dns_provider = { value = jsonencode("ionoscloud") }
-      worker_node_ip            = { value = jsonencode(var.ionos_worker_node_ip) }
+      namespace            = { value = jsonencode(local.unique_name) }
+      seaweedfs_domain     = { value = jsonencode("storage.${local.unique_name}") }
+      keycloak_domain      = { value = jsonencode("keycloak.${local.unique_name}") }
+      email_lets_encrypt   = { value = jsonencode(local.creator_email) }
+      allowed_ip_addresses = { value = jsonencode(var.allowed_ip_addresses) }
     }
   }
 }
@@ -88,18 +87,16 @@ resource "meshstack_building_block" "az_seaweedfs_namespace" {
       uuid = meshstack_tenant.tenant.metadata.uuid
     }
     display_name = "Storage ${local.unique_name}"
+    # Only USER_INPUT inputs are set here. STATIC inputs (storage_class_name,
+    # lets_encrypt_challenge, redirect_http_to_https, dns_zone_*, …) come from the
+    # building block definition — passing them here makes the provider drop them
+    # ("element has vanished") on apply.
     inputs = {
-      namespace              = { value = jsonencode(local.unique_name) }
-      storage_class_name     = { value = jsonencode("default") }
-      seaweedfs_domain       = { value = jsonencode("storage.${local.unique_name}") }
-      keycloak_domain        = { value = jsonencode("keycloak.${local.unique_name}") }
-      email_lets_encrypt     = { value = jsonencode(local.creator_email) }
-      allowed_ip_addresses   = { value = jsonencode(var.allowed_ip_addresses) }
-      redirect_http_to_https = { value = jsonencode(true) }
-      lets_encrypt_challenge = { value = jsonencode("http") }
-      #worker_node_ip          = { value = jsonencode(var.azure_worker_node_ip) }
-      dns_zone_name           = { value = jsonencode(var.dns_zone_name) }
-      dns_zone_resource_group = { value = jsonencode(var.dns_zone_resource_group) }
+      namespace            = { value = jsonencode(local.unique_name) }
+      seaweedfs_domain     = { value = jsonencode("storage.${local.unique_name}") }
+      keycloak_domain      = { value = jsonencode("keycloak.${local.unique_name}") }
+      email_lets_encrypt   = { value = jsonencode(local.creator_email) }
+      allowed_ip_addresses = { value = jsonencode(var.allowed_ip_addresses) }
     }
   }
 }
