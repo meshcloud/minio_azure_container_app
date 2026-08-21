@@ -110,24 +110,27 @@ Keycloak identities are exchanged for temporary S3 credentials via STS `AssumeRo
 
 Deployment is driven by meshStack, not by a direct `terraform apply` at the root.
 
-### 1. Platform team — register the product (once)
-
-In [`meshstack-terraform/`](meshstack-terraform/): register the platform type, platform, landing zone, and the building block definitions (instance BBDs + composition BBD).
-
-```bash
-cd meshstack-terraform
-tofu init
-tofu apply
-```
-
-The instance building block definitions require the **admin** meshStack provider (see the aliased `meshstack.admin` provider); the rest use the normal provider.
-
-### 2. Platform team — provide cloud infrastructure
+### 1. Platform team — provide cloud infrastructure
 
 Provision the target cluster(s) the instances deploy into:
 
-- **Azure:** [`azure-k8s-terrafrom/`](azure-k8s-terrafrom/) — AKS cluster, LoadBalancer (public IP fronting BunkerWeb), and the DNS zone used for Let's Encrypt.
-- **IONOS:** [`ionos-k8s-terrafrom/`](ionos-k8s-terrafrom/) — managed Kubernetes, node pool, and DNS.
+- **Azure:** [`azure-k8s-terrafrom/`](azure-k8s-terrafrom/) — AKS cluster, LoadBalancer (public IP fronting BunkerWeb), the DNS zone used for Let's Encrypt, plus the two **scoped credentials** (see below).
+- **IONOS:** [`ionos-k8s-terrafrom/`](ionos-k8s-terrafrom/) — managed Kubernetes, node pool, DNS, and the scoped deployer ServiceAccount.
+
+```bash
+cd azure-k8s-terrafrom && tofu init && tofu apply     # and/or ionos-k8s-terrafrom
+```
+
+### 2. Platform team — register the product (once)
+
+[`meshstack-terraform/`](meshstack-terraform/) registers the platform type, platform, landing zone, and the building block definitions (instance BBDs + composition BBD). It needs the cloud outputs from step 1 as inputs — use the helper to wire them automatically instead of copying by hand:
+
+```bash
+cd meshstack-terraform
+./sync-from-clouds.sh apply
+```
+
+[`sync-from-clouds.sh`](meshstack-terraform/sync-from-clouds.sh) reads the `azure-k8s-terrafrom` / `ionos-k8s-terrafrom` outputs (cluster host/CA, deployer token, DNS Service Principal) and passes them to `tofu` as a temporary JSON var-file — no secrets on disk. The instance BBDs require the **admin** meshStack provider (aliased `meshstack.admin`); the rest use the normal provider.
 
 ### 3. App team — order storage (self-service)
 
@@ -139,6 +142,17 @@ A tenant orders the **S3 Storage Service** building block in meshStack and picks
 4. returns a **Summary** output with endpoints, credentials, and quick-start commands.
 
 No local Kubernetes, port-forwards, or `s3.localhost` are involved — endpoints are real DNS names served through BunkerWeb.
+
+### Scoped credentials
+
+The instance building blocks never use cluster-admin or ambient cloud credentials. The cluster bootstrap provisions two least-privilege identities that the instance deployments consume:
+
+| Credential | Created in | Scope | Used by the instance for |
+|---|---|---|---|
+| **Deployer ServiceAccount** token | `*-k8s-terrafrom` (`rbac.tf`) | Namespace lifecycle + the built-in `edit` role (no cluster-admin, no RBAC/CRDs) | authenticating the `kubernetes` provider |
+| **DNS Service Principal** (Azure only) | `azure-k8s-terrafrom` (`dns-sp.tf`) | `DNS Zone Contributor` on the one DNS zone only | managing DNS records via `ARM_*` env vars |
+
+Both flow through `sync-from-clouds.sh` → meshStack → the instance building block automatically.
 
 ---
 
