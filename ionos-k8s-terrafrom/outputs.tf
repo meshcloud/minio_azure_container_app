@@ -11,6 +11,25 @@ output "kubeconfig" {
   description = "Kubeconfig for the K8s cluster (use: tofu output -raw kubeconfig > kubeconfig.yaml)"
 }
 
+# Scoped deployer credentials — pass these to ionos-seaweedfs-instance instead
+# of the admin kubeconfig.
+output "deployer_token" {
+  value       = kubernetes_secret_v1.deployer_token.data["token"]
+  sensitive   = true
+  description = "Token of the scoped storage-deployer ServiceAccount — pass to ionos-seaweedfs-instance as deployer_token"
+}
+
+output "cluster_host" {
+  value       = yamldecode(data.ionoscloud_k8s_cluster.main.kube_config).clusters[0].cluster.server
+  description = "K8s API server URL — pass to ionos-seaweedfs-instance as cluster_host"
+}
+
+output "cluster_ca_certificate" {
+  value       = yamldecode(data.ionoscloud_k8s_cluster.main.kube_config).clusters[0].cluster["certificate-authority-data"]
+  sensitive   = true
+  description = "Base64-encoded cluster CA — pass to ionos-seaweedfs-instance as cluster_ca"
+}
+
 output "k8s_cluster_id" {
   value       = ionoscloud_k8s_cluster.main.id
   description = "K8s cluster ID"

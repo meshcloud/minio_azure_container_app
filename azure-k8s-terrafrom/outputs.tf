@@ -3,6 +3,28 @@ output "lb_public_ip" {
   description = "Public IP of the Load Balancer — point DNS records here"
 }
 
+# Scoped DNS Service Principal — pass to az-seaweedfs-instance for DNS management.
+output "dns_sp_tenant_id" {
+  value       = data.azurerm_client_config.current.tenant_id
+  description = "Azure AD tenant ID — pass as azure_tenant_id"
+}
+
+output "dns_sp_subscription_id" {
+  value       = data.azurerm_client_config.current.subscription_id
+  description = "Subscription ID of the cluster — pass as azure_subscription_id"
+}
+
+output "dns_sp_client_id" {
+  value       = azuread_application.dns.client_id
+  description = "DNS Service Principal client ID — pass as azure_client_id"
+}
+
+output "dns_sp_client_secret" {
+  value       = azuread_service_principal_password.dns.value
+  sensitive   = true
+  description = "DNS Service Principal client secret — pass as azure_client_secret"
+}
+
 output "kubeconfig" {
   value       = azurerm_kubernetes_cluster.main.kube_config_raw
   sensitive   = true

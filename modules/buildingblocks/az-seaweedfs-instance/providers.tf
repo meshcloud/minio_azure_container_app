@@ -1,12 +1,12 @@
 provider "kubernetes" {
-  host                   = local.use_token ? var.cluster_host : null
-  cluster_ca_certificate = local.use_token ? base64decode(var.cluster_ca) : null
-  token                  = local.use_token ? var.deployer_token : null
-
-  config_path    = local.use_token ? null : local.config_path
-  config_context = local.use_token ? null : local.config_context
+  host                   = var.cluster_host
+  cluster_ca_certificate = base64decode(var.cluster_ca)
+  token                  = var.deployer_token
 }
 
+# Authenticates via ARM_* environment variables (ARM_TENANT_ID,
+# ARM_SUBSCRIPTION_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET) injected by meshStack
+# from the scoped DNS Service Principal — no explicit credentials needed here.
 provider "azurerm" {
   features {}
 }

@@ -124,36 +124,20 @@ variable "redirect_http_to_https" {
   description = "Enable HTTP to HTTPS redirect. Set to false for Azure until Let's Encrypt certificates are obtained, then set to true."
 }
 
-variable "ionos_config_path" {
-  type        = string
-  default     = ""
-  description = "Path to IONOS Kubernetes config file. Fallback auth used only when deployer_token is not set."
-}
-
-variable "ionos_config_context" {
-  type        = string
-  default     = ""
-  description = "Context name for IONOS Kubernetes cluster. Fallback auth used only when deployer_token is not set."
-}
-
-# Preferred, scoped auth: token of the storage-deployer ServiceAccount from the
-# ionos-k8s-terrafrom cluster bootstrap. When set, it takes precedence over the
-# kubeconfig above.
+# Scoped auth: the storage-deployer ServiceAccount from the ionos-k8s-terrafrom
+# cluster bootstrap. This is the only supported auth for this module.
 variable "cluster_host" {
   type        = string
-  default     = ""
   description = "K8s API server URL (from ionos-k8s-terrafrom output cluster_host)."
 }
 
 variable "cluster_ca" {
   type        = string
-  default     = ""
   description = "Base64-encoded cluster CA (from ionos-k8s-terrafrom output cluster_ca_certificate)."
 }
 
 variable "deployer_token" {
   type        = string
-  default     = ""
   sensitive   = true
   description = "Scoped storage-deployer ServiceAccount token (from ionos-k8s-terrafrom output deployer_token)."
 }

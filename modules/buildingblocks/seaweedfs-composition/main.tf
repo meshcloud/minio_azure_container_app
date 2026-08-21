@@ -61,7 +61,7 @@ resource "meshstack_building_block" "ionos_seaweedfs_namespace" {
       kind = "meshTenant"
       uuid = meshstack_tenant.tenant.metadata.uuid
     }
-    display_name = "Namespace ${local.unique_name}"
+    display_name = "Storage ${local.unique_name}"
     inputs = {
       namespace                 = { value = jsonencode(local.unique_name) }
       storage_class_name        = { value = jsonencode("ionos-enterprise-hdd") }
@@ -87,7 +87,7 @@ resource "meshstack_building_block" "az_seaweedfs_namespace" {
       kind = "meshTenant"
       uuid = meshstack_tenant.tenant.metadata.uuid
     }
-    display_name = "Namespace ${local.unique_name}"
+    display_name = "Storage ${local.unique_name}"
     inputs = {
       namespace              = { value = jsonencode(local.unique_name) }
       storage_class_name     = { value = jsonencode("default") }
