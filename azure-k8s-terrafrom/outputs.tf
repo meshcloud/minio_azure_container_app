@@ -9,6 +9,25 @@ output "kubeconfig" {
   description = "Kubeconfig for the AKS cluster (use: terraform output -raw kubeconfig > kubeconfig.yaml)"
 }
 
+# Scoped deployer credentials — pass these to az-seaweedfs-instance instead of
+# the admin kubeconfig.
+output "deployer_token" {
+  value       = kubernetes_secret_v1.deployer_token.data["token"]
+  sensitive   = true
+  description = "Token of the scoped storage-deployer ServiceAccount — pass to az-seaweedfs-instance as deployer_token"
+}
+
+output "cluster_host" {
+  value       = nonsensitive(azurerm_kubernetes_cluster.main.kube_config[0].host)
+  description = "AKS API server URL — pass to az-seaweedfs-instance as cluster_host"
+}
+
+output "cluster_ca_certificate" {
+  value       = azurerm_kubernetes_cluster.main.kube_config[0].cluster_ca_certificate
+  sensitive   = true
+  description = "Base64-encoded cluster CA — pass to az-seaweedfs-instance as cluster_ca"
+}
+
 output "aks_cluster_id" {
   value       = azurerm_kubernetes_cluster.main.id
   description = "AKS cluster ID"

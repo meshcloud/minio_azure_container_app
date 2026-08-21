@@ -1,13 +1,17 @@
 locals {
-  unique_name = "${var.name}-${random_string.suffix.result}"
+  project_tags = try(yamldecode(var.project_tags_yaml), {})
+
+  # First environment tag value (e.g. "dev"), if set — appended to the name.
+  environment = try(local.project_tags.environment[0], "")
+
+  base_name   = "${var.name}-${random_string.suffix.result}"
+  unique_name = local.environment != "" ? "${local.base_name}-${local.environment}" : local.base_name
   identifier  = lower(trim(replace(local.unique_name, "/[\\s\\-\\_]+/", "-"), "-"))
 
   is_azure = var.cloud_provider == "azure"
 
   creator_data  = jsondecode(var.creator)
   creator_email = local.creator_data.email
-
-  project_tags = try(yamldecode(var.project_tags_yaml), {})
 }
 
 resource "random_string" "suffix" {
