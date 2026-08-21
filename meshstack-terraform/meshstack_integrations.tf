@@ -7,7 +7,6 @@ variable "meshstack" {
     tags                        = optional(map(list(string)), {})
     notification_subscribers    = optional(list(string), [])
   })
-  description = "meshStack ownership and naming settings for this platform integration."
 }
 
 resource "meshstack_platform_type" "storage_service_platfrom_type" {
@@ -71,7 +70,7 @@ resource "meshstack_platform" "storage_platform" {
 }
 resource "meshstack_landingzone" "example" {
   metadata = {
-    name               = var.meshstack.location_name
+    name               = "storage-lz"
     owned_by_workspace = var.meshstack.owning_workspace_identifier
     tags               = var.meshstack.tags
   }
@@ -109,18 +108,6 @@ resource "meshstack_landingzone" "example" {
 # Variables for building block definitions
 # ---------------------------------------------------------------------------
 
-variable "az_kubeconfig_content" {
-  type        = string
-  sensitive   = true
-  description = "Content of the AKS kubeconfig file (terraform output -raw kubeconfig from azure-infrastructure)."
-}
-
-variable "ionos_kubeconfig_content" {
-  type        = string
-  sensitive   = true
-  description = "Content of the IONOS kubeconfig file."
-}
-
 variable "ionos_dns_token" {
   type        = string
   sensitive   = true
@@ -131,9 +118,12 @@ variable "ionos_dns_token" {
 variable "ionos" {
   type = object({
     worker_node_ip            = optional(string, "217.160.202.141")
-    config_context            = optional(string, "ionos-cluster")
     dns_zone_id               = optional(string, "")
     instance_bbd_version_uuid = optional(string, "")
+    # Non-secret scoped-auth config (from ionos-k8s-terrafrom outputs).
+    # The deployer token is a secret and lives in var.ionos_deployer_token.
+    cluster_host = optional(string, "")
+    cluster_ca   = optional(string, "")
   })
   description = "IONOS Kubernetes configuration for the SeaweedFS building block definitions."
   default     = {}
@@ -142,12 +132,51 @@ variable "ionos" {
 variable "azure" {
   type = object({
     worker_node_ip            = string
-    dns_zone_name             = optional(string, "az-flo.msh.host")
-    dns_zone_resource_group   = optional(string, "meshcloud-aks-test")
-    kubeconfig_context        = optional(string, "test-aks")
+    dns_zone_name             = optional(string, "")
+    dns_zone_resource_group   = optional(string, "")
     instance_bbd_version_uuid = optional(string, "")
+    # Non-secret scoped-auth config (from azure-k8s-terrafrom outputs).
+    # The deployer token is a secret and lives in var.az_deployer_token.
+    cluster_host = optional(string, "")
+    cluster_ca   = optional(string, "")
+    # Scoped DNS Service Principal (from azure-k8s-terrafrom outputs). The client
+    # secret is sensitive and lives in var.az_dns_client_secret.
+    tenant_id       = optional(string, "")
+    subscription_id = optional(string, "")
+    client_id       = optional(string, "")
   })
   description = "Azure AKS configuration for the SeaweedFS building block definitions."
+}
+
+variable "az_deployer_token" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Scoped storage-deployer ServiceAccount token for AKS (from azure-k8s-terrafrom output deployer_token)."
+}
+
+variable "az_dns_client_secret" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "DNS Service Principal client secret for AKS (from azure-k8s-terrafrom output dns_sp_client_secret)."
+}
+
+variable "ionos_deployer_token" {
+  type        = string
+  sensitive   = true
+  default     = ""
+  description = "Scoped storage-deployer ServiceAccount token for IONOS K8s (from ionos-k8s-terrafrom output deployer_token)."
+}
+
+locals {
+  # The provider rejects empty secrets. The building block definitions are always
+  # created, so until a real token is supplied we fall back to a non-empty
+  # placeholder; the real value rotates in automatically once provided
+  # (secret_version is a hash of the value).
+  az_deployer_token    = var.az_deployer_token != "" ? var.az_deployer_token : "PLACEHOLDER-az-deployer-token"
+  ionos_deployer_token = var.ionos_deployer_token != "" ? var.ionos_deployer_token : "PLACEHOLDER-ionos-deployer-token"
+  az_dns_client_secret = var.az_dns_client_secret != "" ? var.az_dns_client_secret : "PLACEHOLDER-az-dns-client-secret"
 }
 
 # ---------------------------------------------------------------------------
@@ -164,7 +193,7 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
     display_name             = "SeaweedFS instance on AKS"
     documentation_url        = null
     notification_subscribers = var.meshstack.notification_subscribers
-    readme                   = "# SeaweedFS S3 Storage Instance (Azure AKS)\n\nDeploys SeaweedFS with Keycloak OIDC authentication into an AKS namespace, protected by the shared BunkerWeb WAF.\n"
+    readme                   = file("${path.module}/../modules/buildingblocks/az-seaweedfs-instance/APP_TEAM_README.md")
     run_transparency         = true
     support_url              = null
     supported_platforms = [
@@ -270,12 +299,12 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      kubeconfig_path = {
-        argument                       = "\"az_kubeconfig.yaml\""
+      cluster_host = {
+        argument                       = "\"${var.azure.cluster_host}\""
         assignment_type                = "STATIC"
         default_value                  = null
-        description                    = "Path to AKS kubeconfig file"
-        display_name                   = "Kubeconfig Path"
+        description                    = "AKS API server URL for scoped (token) auth"
+        display_name                   = "Cluster Host"
         is_environment                 = false
         selectable_values              = null
         sensitive                      = null
@@ -284,15 +313,97 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      kubeconfig_context = {
-        argument                       = "\"${var.azure.kubeconfig_context}\""
+      cluster_ca = {
+        argument                       = "\"${var.azure.cluster_ca}\""
         assignment_type                = "STATIC"
         default_value                  = null
-        description                    = "AKS cluster context name in the kubeconfig"
-        display_name                   = "Kubeconfig Context"
+        description                    = "Base64-encoded cluster CA for scoped (token) auth"
+        display_name                   = "Cluster CA"
         is_environment                 = false
         selectable_values              = null
         sensitive                      = null
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      deployer_token = {
+        argument          = null
+        assignment_type   = "STATIC"
+        default_value     = null
+        description       = "Scoped storage-deployer ServiceAccount token"
+        display_name      = "Deployer Token"
+        is_environment    = false
+        selectable_values = null
+        sensitive = {
+          argument = {
+            secret_value   = local.az_deployer_token
+            secret_version = nonsensitive(sha256(local.az_deployer_token))
+          }
+          default_value = null
+        }
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      ARM_TENANT_ID = {
+        argument                       = "\"${var.azure.tenant_id}\""
+        assignment_type                = "STATIC"
+        default_value                  = null
+        description                    = "Azure AD tenant ID for the DNS Service Principal"
+        display_name                   = "ARM Tenant ID"
+        is_environment                 = true
+        selectable_values              = null
+        sensitive                      = null
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      ARM_SUBSCRIPTION_ID = {
+        argument                       = "\"${var.azure.subscription_id}\""
+        assignment_type                = "STATIC"
+        default_value                  = null
+        description                    = "Azure subscription ID of the cluster"
+        display_name                   = "ARM Subscription ID"
+        is_environment                 = true
+        selectable_values              = null
+        sensitive                      = null
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      ARM_CLIENT_ID = {
+        argument                       = "\"${var.azure.client_id}\""
+        assignment_type                = "STATIC"
+        default_value                  = null
+        description                    = "DNS Service Principal client ID"
+        display_name                   = "ARM Client ID"
+        is_environment                 = true
+        selectable_values              = null
+        sensitive                      = null
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      ARM_CLIENT_SECRET = {
+        argument          = null
+        assignment_type   = "STATIC"
+        default_value     = null
+        description       = "DNS Service Principal client secret"
+        display_name      = "ARM Client Secret"
+        is_environment    = true
+        selectable_values = null
+        sensitive = {
+          argument = {
+            secret_value   = local.az_dns_client_secret
+            secret_version = nonsensitive(sha256(local.az_dns_client_secret))
+          }
+          default_value = null
+        }
         type                           = "STRING"
         updateable_by_consumer         = false
         validation_regex_error_message = null
@@ -396,26 +507,6 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      "az_kubeconfig.yaml" = {
-        argument          = null
-        assignment_type   = "STATIC"
-        default_value     = null
-        description       = "AKS kubeconfig file"
-        display_name      = "AKS Kubeconfig"
-        is_environment    = false
-        selectable_values = null
-        sensitive = {
-          argument = {
-            secret_value   = var.az_kubeconfig_content
-            secret_version = null
-          }
-          default_value = null
-        }
-        type                           = "FILE"
-        updateable_by_consumer         = false
-        validation_regex_error_message = null
-        value_validation_regex         = null
-      }
     }
     only_apply_once_per_tenant = false
     outputs = {
@@ -503,7 +594,7 @@ resource "meshstack_building_block_definition" "ionos_seaweedfs_instance" {
     display_name             = "SeaweedFS instance on IONOS"
     documentation_url        = null
     notification_subscribers = var.meshstack.notification_subscribers
-    readme                   = "# SeaweedFS S3 Storage Instance (IONOS)\n\nDeploys SeaweedFS with Keycloak OIDC authentication into an IONOS Kubernetes namespace, protected by the shared BunkerWeb WAF.\n"
+    readme                   = file("${path.module}/../modules/buildingblocks/ionos-seaweedfs-instance/APP_TEAM_README.md")
     run_transparency         = true
     support_url              = null
     supported_platforms = [
@@ -609,12 +700,12 @@ resource "meshstack_building_block_definition" "ionos_seaweedfs_instance" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      ionos_config_path = {
-        argument                       = "\"ionos_kubeconfig.yaml\""
+      cluster_host = {
+        argument                       = "\"${var.ionos.cluster_host}\""
         assignment_type                = "STATIC"
         default_value                  = null
-        description                    = "Path to IONOS kubeconfig file"
-        display_name                   = "Kubeconfig Path"
+        description                    = "K8s API server URL for scoped (token) auth"
+        display_name                   = "Cluster Host"
         is_environment                 = false
         selectable_values              = null
         sensitive                      = null
@@ -623,15 +714,35 @@ resource "meshstack_building_block_definition" "ionos_seaweedfs_instance" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      ionos_config_context = {
-        argument                       = "\"${var.ionos.config_context}\""
+      cluster_ca = {
+        argument                       = "\"${var.ionos.cluster_ca}\""
         assignment_type                = "STATIC"
         default_value                  = null
-        description                    = "Context name for IONOS Kubernetes cluster"
-        display_name                   = "Kubeconfig Context"
+        description                    = "Base64-encoded cluster CA for scoped (token) auth"
+        display_name                   = "Cluster CA"
         is_environment                 = false
         selectable_values              = null
         sensitive                      = null
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      deployer_token = {
+        argument          = null
+        assignment_type   = "STATIC"
+        default_value     = null
+        description       = "Scoped storage-deployer ServiceAccount token"
+        display_name      = "Deployer Token"
+        is_environment    = false
+        selectable_values = null
+        sensitive = {
+          argument = {
+            secret_value   = local.ionos_deployer_token
+            secret_version = nonsensitive(sha256(local.ionos_deployer_token))
+          }
+          default_value = null
+        }
         type                           = "STRING"
         updateable_by_consumer         = false
         validation_regex_error_message = null
@@ -732,31 +843,11 @@ resource "meshstack_building_block_definition" "ionos_seaweedfs_instance" {
         sensitive = {
           argument = {
             secret_value   = var.ionos_dns_token
-            secret_version = null
+            secret_version = nonsensitive(sha256(var.ionos_dns_token))
           }
           default_value = null
         }
         type                           = "STRING"
-        updateable_by_consumer         = false
-        validation_regex_error_message = null
-        value_validation_regex         = null
-      }
-      "ionos_kubeconfig.yaml" = {
-        argument          = null
-        assignment_type   = "STATIC"
-        default_value     = null
-        description       = "IONOS Kubernetes kubeconfig file"
-        display_name      = "IONOS Kubeconfig"
-        is_environment    = false
-        selectable_values = null
-        sensitive = {
-          argument = {
-            secret_value   = var.ionos_kubeconfig_content
-            secret_version = null
-          }
-          default_value = null
-        }
-        type                           = "FILE"
         updateable_by_consumer         = false
         validation_regex_error_message = null
         value_validation_regex         = null
@@ -848,7 +939,7 @@ resource "meshstack_building_block_definition" "seaweedfs_composition" {
     display_name              = "S3 Storage Service"
     documentation_url         = null
     notification_subscribers  = var.meshstack.notification_subscribers
-    readme                    = "# S3 Storage Service\n\nProvisions a SeaweedFS S3-compatible storage environment on IONOS or Azure Kubernetes with Keycloak OIDC and BunkerWeb WAF.\n"
+    readme                    = file("${path.module}/../modules/buildingblocks/seaweedfs-composition/APP_TEAM_README.md")
     run_transparency          = false
     support_url               = null
     supported_platforms       = null
@@ -1034,7 +1125,7 @@ resource "meshstack_building_block_definition" "seaweedfs_composition" {
         value_validation_regex         = null
       }
       landing_zone_identifier = {
-        argument                       = "\"${var.meshstack.location_name}\""
+        argument                       = "\"storage-lz\""
         assignment_type                = "STATIC"
         default_value                  = null
         description                    = "Identifier of the landing zone to use for the tenant."
