@@ -126,12 +126,36 @@ variable "redirect_http_to_https" {
 
 variable "kubeconfig_path" {
   type        = string
-  description = "Path to AKS kubeconfig file"
+  default     = ""
+  description = "Path to AKS kubeconfig file. Fallback auth used only when deployer_token is not set."
 }
 
 variable "kubeconfig_context" {
   type        = string
-  description = "Context name in the kubeconfig for the AKS cluster"
+  default     = ""
+  description = "Context name in the kubeconfig for the AKS cluster. Fallback auth used only when deployer_token is not set."
+}
+
+# Preferred, scoped auth: token of the storage-deployer ServiceAccount from the
+# azure-k8s-terrafrom cluster bootstrap. When set, it takes precedence over the
+# kubeconfig above.
+variable "cluster_host" {
+  type        = string
+  default     = ""
+  description = "AKS API server URL (from azure-k8s-terrafrom output cluster_host)."
+}
+
+variable "cluster_ca" {
+  type        = string
+  default     = ""
+  description = "Base64-encoded cluster CA (from azure-k8s-terrafrom output cluster_ca_certificate)."
+}
+
+variable "deployer_token" {
+  type        = string
+  default     = ""
+  sensitive   = true
+  description = "Scoped storage-deployer ServiceAccount token (from azure-k8s-terrafrom output deployer_token)."
 }
 
 variable "seaweedfs_admin_access_key" {

@@ -1,7 +1,11 @@
 locals {
   # Platform-specific Kubernetes configs
-  config_path        = var.ionos_config_path
-  config_context     = var.ionos_config_context
+  config_path    = var.ionos_config_path
+  config_context = var.ionos_config_context
+
+  # Prefer the scoped deployer token; fall back to kubeconfig when not provided.
+  use_token = var.deployer_token != ""
+
   create_dns_records = var.ionos_dns_zone_id != "" && var.worker_node_ip != ""
 }
 

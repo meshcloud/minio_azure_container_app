@@ -2,6 +2,9 @@ locals {
   config_path    = var.kubeconfig_path
   config_context = var.kubeconfig_context
 
+  # Prefer the scoped deployer token; fall back to kubeconfig when not provided.
+  use_token = var.deployer_token != ""
+
   create_dns_records = var.worker_node_ip != ""
 
   seaweedfs_fqdn = "${var.seaweedfs_domain}.${var.dns_zone_name}"
