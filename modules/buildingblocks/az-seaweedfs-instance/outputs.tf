@@ -69,4 +69,3 @@ output "aws_cli_configure_command" {
 output "tenant_id" {
   value = kubernetes_namespace.this.id
 }
-

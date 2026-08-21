@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: terraform_docs
         args:
-            - --args=--config=.terraform-docs.yml
+          - --args=--config=.terraform-docs.yml
       - id: terraform_fmt
       - id: terragrunt_fmt
       - id: terragrunt_providers_lock
@@ -17,7 +17,7 @@ repos:
 
       - id: terraform_tflint
         args:
-          - --args=--config=.tflint.hcl
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
 
       # tfupdate hooks for aligning terraform and provider versions
       # aligning versions helps build performance becuase there's less providers to download/cache across all our modules
@@ -25,11 +25,10 @@ repos:
         name: tfupdate terraform
         args:
           - --args=terraform
-          - --args=--version ">= 1.0"
-
+          - --args=--version ">= 1.8"
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0  # Use the ref you want to point at
+    rev: v4.4.0 # Use the ref you want to point at
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer

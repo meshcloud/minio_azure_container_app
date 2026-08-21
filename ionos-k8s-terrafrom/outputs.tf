@@ -25,4 +25,3 @@ output "bunkerweb_ingress_class_name" {
   value       = "bunkerweb"
   description = "Ingress class name for the shared BunkerWeb deployment"
 }
-
