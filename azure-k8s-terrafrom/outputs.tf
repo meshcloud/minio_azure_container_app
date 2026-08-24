@@ -3,26 +3,30 @@ output "lb_public_ip" {
   description = "Public IP of the Load Balancer — point DNS records here"
 }
 
-# Scoped DNS Service Principal — pass to az-seaweedfs-instance for DNS management.
-output "dns_sp_tenant_id" {
+# Secretless DNS access — federated UAMI for the seaweedfs instance building block.
+output "dns_tenant_id" {
   value       = data.azurerm_client_config.current.tenant_id
   description = "Azure AD tenant ID — pass as azure_tenant_id"
 }
 
-output "dns_sp_subscription_id" {
+output "dns_subscription_id" {
   value       = data.azurerm_client_config.current.subscription_id
   description = "Subscription ID of the cluster — pass as azure_subscription_id"
 }
 
-output "dns_sp_client_id" {
-  value       = azuread_application.dns.client_id
-  description = "DNS Service Principal client ID — pass as azure_client_id"
+output "dns_client_id" {
+  value       = azurerm_user_assigned_identity.dns.client_id
+  description = "DNS UAMI client ID — pass as azure_client_id (used with ARM_USE_OIDC)"
 }
 
-output "dns_sp_client_secret" {
-  value       = azuread_service_principal_password.dns.value
-  sensitive   = true
-  description = "DNS Service Principal client secret — pass as azure_client_secret"
+output "dns_uami_id" {
+  value       = azurerm_user_assigned_identity.dns.id
+  description = "DNS UAMI resource ID — pass to meshstack-terraform for the federated credential"
+}
+
+output "dns_uami_resource_group" {
+  value       = azurerm_user_assigned_identity.dns.resource_group_name
+  description = "Resource group of the DNS UAMI — pass to meshstack-terraform for the federated credential"
 }
 
 output "kubeconfig" {

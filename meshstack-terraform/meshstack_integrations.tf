@@ -155,11 +155,16 @@ variable "az_deployer_token" {
   description = "Scoped storage-deployer ServiceAccount token for AKS (from azure-k8s-terrafrom output deployer_token)."
 }
 
-variable "az_dns_client_secret" {
+variable "az_uami_id" {
   type        = string
-  sensitive   = true
   default     = ""
-  description = "DNS Service Principal client secret for AKS (from azure-k8s-terrafrom output dns_sp_client_secret)."
+  description = "Resource ID of the DNS UAMI (from azure-k8s-terrafrom output dns_uami_id). Federated credential is created only when set."
+}
+
+variable "az_uami_resource_group" {
+  type        = string
+  default     = ""
+  description = "Resource group of the DNS UAMI (from azure-k8s-terrafrom output dns_uami_resource_group)."
 }
 
 variable "ionos_deployer_token" {
@@ -176,7 +181,28 @@ locals {
   # (secret_version is a hash of the value).
   az_deployer_token    = var.az_deployer_token != "" ? var.az_deployer_token : "PLACEHOLDER-az-deployer-token"
   ionos_deployer_token = var.ionos_deployer_token != "" ? var.ionos_deployer_token : "PLACEHOLDER-ionos-deployer-token"
-  az_dns_client_secret = var.az_dns_client_secret != "" ? var.az_dns_client_secret : "PLACEHOLDER-az-dns-client-secret"
+
+  # meshStack deployment namespace, derived from the replicator's WIF subject
+  # (e.g. "system:serviceaccount:meshcloud-dev:..." -> "meshcloud-dev").
+  mesh_namespace = split(":", data.meshstack_integrations.this.workload_identity_federation.replicator.subject)[2]
+
+  # Per-building-block-definition OIDC subject the instance run presents to Azure.
+  az_bbd_subject = "system:serviceaccount:${local.mesh_namespace}:workspace.${var.meshstack.owning_workspace_identifier}.buildingblockdefinition.${meshstack_building_block_definition.az_seaweedfs_instance.metadata.uuid}"
+}
+
+# Federated identity credential on the DNS UAMI (provisioned by
+# azure-k8s-terrafrom) so the Azure instance building block authenticates to
+# Azure via OIDC — no client secret. Created once the UAMI id is supplied.
+data "meshstack_integrations" "this" {}
+
+resource "azurerm_federated_identity_credential" "az_dns" {
+  count               = var.az_uami_id != "" ? 1 : 0
+  name                = "seaweedfs-az-instance"
+  resource_group_name = var.az_uami_resource_group
+  parent_id           = var.az_uami_id
+  audience            = [data.meshstack_integrations.this.workload_identity_federation.replicator.azure.audience]
+  issuer              = data.meshstack_integrations.this.workload_identity_federation.replicator.issuer
+  subject             = local.az_bbd_subject
 }
 
 # ---------------------------------------------------------------------------
@@ -389,21 +415,29 @@ resource "meshstack_building_block_definition" "az_seaweedfs_instance" {
         validation_regex_error_message = null
         value_validation_regex         = null
       }
-      ARM_CLIENT_SECRET = {
-        argument          = null
-        assignment_type   = "STATIC"
-        default_value     = null
-        description       = "DNS Service Principal client secret"
-        display_name      = "ARM Client Secret"
-        is_environment    = true
-        selectable_values = null
-        sensitive = {
-          argument = {
-            secret_value   = local.az_dns_client_secret
-            secret_version = nonsensitive(sha256(local.az_dns_client_secret))
-          }
-          default_value = null
-        }
+      ARM_USE_OIDC = {
+        argument                       = "\"true\""
+        assignment_type                = "STATIC"
+        default_value                  = null
+        description                    = "Authenticate the azurerm provider via OIDC (federated UAMI) — no client secret."
+        display_name                   = "ARM Use OIDC"
+        is_environment                 = true
+        selectable_values              = null
+        sensitive                      = null
+        type                           = "STRING"
+        updateable_by_consumer         = false
+        validation_regex_error_message = null
+        value_validation_regex         = null
+      }
+      ARM_OIDC_TOKEN_FILE_PATH = {
+        argument                       = "\"/var/run/secrets/workload-identity/azure/token\""
+        assignment_type                = "STATIC"
+        default_value                  = null
+        description                    = "Path to the federated OIDC token file meshStack mounts for the run."
+        display_name                   = "ARM OIDC Token File Path"
+        is_environment                 = true
+        selectable_values              = null
+        sensitive                      = null
         type                           = "STRING"
         updateable_by_consumer         = false
         validation_regex_error_message = null
@@ -1158,5 +1192,16 @@ terraform {
       version               = ">= 0.22.0"
       configuration_aliases = [meshstack.admin]
     }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.17"
+    }
   }
+}
+
+# Local Azure auth (az CLI / env) — used only to create the federated identity
+# credential on the DNS UAMI provisioned by azure-k8s-terrafrom.
+provider "azurerm" {
+  features {}
+  subscription_id = var.azure.subscription_id != "" ? var.azure.subscription_id : null
 }

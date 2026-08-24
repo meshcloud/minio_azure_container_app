@@ -51,12 +51,13 @@ jq -n --argjson az "$az_json" --argjson io "$io_json" '
       dns_zone_resource_group: ($az.dns_zone_resource_group.value  // ""),
       cluster_host:            ($az.cluster_host.value             // ""),
       cluster_ca:              ($az.cluster_ca_certificate.value   // ""),
-      tenant_id:               ($az.dns_sp_tenant_id.value         // ""),
-      subscription_id:         ($az.dns_sp_subscription_id.value   // ""),
-      client_id:               ($az.dns_sp_client_id.value         // "")
+      tenant_id:               ($az.dns_tenant_id.value            // ""),
+      subscription_id:         ($az.dns_subscription_id.value      // ""),
+      client_id:               ($az.dns_client_id.value            // "")
     },
-    az_deployer_token:    ($az.deployer_token.value       // ""),
-    az_dns_client_secret: ($az.dns_sp_client_secret.value // "")
+    az_deployer_token:      ($az.deployer_token.value          // ""),
+    az_uami_id:             ($az.dns_uami_id.value             // ""),
+    az_uami_resource_group: ($az.dns_uami_resource_group.value // "")
   } else {} end)
   +
   (if ($io | length) > 0 then {
