@@ -130,7 +130,7 @@ cd meshstack-terraform
 ./sync-from-clouds.sh apply
 ```
 
-[`sync-from-clouds.sh`](meshstack-terraform/sync-from-clouds.sh) reads the `azure-k8s-terrafrom` / `ionos-k8s-terrafrom` outputs (cluster host/CA, deployer token, DNS Service Principal) and passes them to `tofu` as a temporary JSON var-file — no secrets on disk. The instance BBDs require the **admin** meshStack provider (aliased `meshstack.admin`); the rest use the normal provider.
+[`sync-from-clouds.sh`](meshstack-terraform/sync-from-clouds.sh) reads the `azure-k8s-terrafrom` / `ionos-k8s-terrafrom` outputs (cluster host/CA, deployer token, DNS managed-identity id/client-id) and passes them to `tofu` as a temporary JSON var-file — no secrets on disk. The instance BBDs require the **admin** meshStack provider (aliased `meshstack.admin`); the rest use the normal provider.
 
 ### 3. App team — order storage (self-service)
 
@@ -150,7 +150,12 @@ The instance building blocks never use cluster-admin or ambient cloud credential
 | Credential | Created in | Scope | Used by the instance for |
 |---|---|---|---|
 | **Deployer ServiceAccount** token | `*-k8s-terrafrom` (`rbac.tf`) | Namespace lifecycle + the built-in `edit` role (no cluster-admin, no RBAC/CRDs) | authenticating the `kubernetes` provider |
-| **DNS Service Principal** (Azure only) | `azure-k8s-terrafrom` (`dns-sp.tf`) | `DNS Zone Contributor` on the one DNS zone only | managing DNS records via `ARM_*` env vars |
+| **DNS User-Assigned Managed Identity** (Azure only) | `azure-k8s-terrafrom` (`dns-uami.tf`) | `DNS Zone Contributor` on the one DNS zone only | managing DNS records via `ARM_*` + OIDC |
+
+The DNS identity is **secretless**: instead of a Service Principal client secret, the UAMI is federated to meshStack via **Workload Identity Federation**. The instance run authenticates with `ARM_USE_OIDC=true` and the token meshStack mounts at `/var/run/secrets/workload-identity/azure/token` — no secret is stored or rotated.
+
+- `azure-k8s-terrafrom` creates the UAMI + the `DNS Zone Contributor` role assignment.
+- `meshstack-terraform` creates the `azurerm_federated_identity_credential`, because its OIDC **subject is per building block definition** (`system:serviceaccount:<mesh-ns>:workspace.<workspace>.buildingblockdefinition.<bbd-uuid>`) — the BBD UUID only exists there. Issuer/audience come from the `meshstack_integrations` data source (an "Other issuer" federation, not AKS Kubernetes workload identity).
 
 Both flow through `sync-from-clouds.sh` → meshStack → the instance building block automatically.
 
